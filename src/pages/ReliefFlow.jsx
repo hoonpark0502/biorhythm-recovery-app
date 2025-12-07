@@ -8,15 +8,22 @@ const BreathingStep = ({ onNext }) => {
     const audioRef = useRef(null);
 
     const handleStart = () => {
-        setIsBreathing(true);
         if (audioRef.current) {
             audioRef.current.volume = 0.5;
+            // iOS requires play() to be triggered directly by user interaction.
+            // We must call play() BEFORE any state updates (re-renders).
             const playPromise = audioRef.current.play();
+
             if (playPromise !== undefined) {
-                playPromise.catch(e => {
-                    console.error("Audio blocked", e);
-                    alert("Could not play sound. Please check your device volume or Silent Mode switch.");
-                });
+                playPromise
+                    .then(() => {
+                        // Success: Now we can update the UI
+                        setIsBreathing(true);
+                    })
+                    .catch(e => {
+                        console.error("Audio blocked", e);
+                        alert(`Sound blocked by browser: ${e.message}\nTry tapping again strictly.`);
+                    });
             }
         }
     };
