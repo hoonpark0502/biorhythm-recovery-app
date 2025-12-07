@@ -1,19 +1,26 @@
 import React, { useState } from 'react';
 import { useStorage } from '../context/StorageContext';
-import { motion } from 'framer-motion';
-
-// Note: Using inline styles for speed/colocation in MVP, can move to CSS modules later.
-// Using standard div for now, simulating framer-motion behavior with CSS classes in index.css
+import { requestNotificationPermission } from '../firebase'; // Import Firebase logic
 
 const Onboarding = ({ onFinish }) => {
-    const { completeOnboarding } = useStorage();
+    const { completeOnboarding, updateProfile } = useStorage();
     const [step, setStep] = useState(0); // 0: Welcome, 1: Name, 2: Notification
     const [name, setName] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
 
-    const handleNext = () => {
+    const handleNext = async () => {
         if (step === 2) {
+            // Final Step: Request Permission
+            setIsLoading(true);
+            const token = await requestNotificationPermission();
+            if (token) {
+                updateProfile({ fcmToken: token });
+                alert("Notifications enabled! You'll receive a test message soon.");
+            } else {
+                alert("Notifications skipped. You can enable them later in settings.");
+            }
+            setIsLoading(false);
             completeOnboarding(name || 'Friend');
-            // onFinish is handled by App listening to context
         } else {
             setStep(prev => prev + 1);
         }
@@ -59,12 +66,12 @@ const Onboarding = ({ onFinish }) => {
                 <div className="fade-in" style={{ textAlign: 'center' }}>
                     <h2 style={{ marginBottom: '16px' }}>Let's keep in touch.</h2>
                     <p style={{ color: 'var(--color-text-sub)', marginBottom: '32px' }}>
-                        We'll send you a gentle reminder<br />
-                        daily to check in on your rhythm.
+                        Allow notifications to receive<br />
+                        daily rhythm reminders.
                     </p>
                     <div style={{ background: 'white', padding: '20px', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)', display: 'inline-block' }}>
-                        <div>☀️ Morning Check-in: 08:00</div>
-                        <div style={{ marginTop: '10px' }}>🌙 Evening Routine: 20:00</div>
+                        <div style={{ fontSize: '3rem', marginBottom: '16px' }}>🔔</div>
+                        <div>Click 'Start Journey' to enable</div>
                     </div>
                 </div>
             )}
@@ -72,6 +79,7 @@ const Onboarding = ({ onFinish }) => {
             <div style={{ marginTop: '60px', textAlign: 'center' }}>
                 <button
                     onClick={handleNext}
+                    disabled={isLoading}
                     style={{
                         background: 'var(--color-primary)',
                         color: 'white',
@@ -80,9 +88,10 @@ const Onboarding = ({ onFinish }) => {
                         fontSize: '1.1rem',
                         fontWeight: '600',
                         boxShadow: 'var(--shadow-float)',
-                        width: '100%'
+                        width: '100%',
+                        opacity: isLoading ? 0.7 : 1
                     }}>
-                    {step === 2 ? "Start Journey" : "Next"}
+                    {isLoading ? "Setting up..." : (step === 2 ? "Start Journey" : "Next")}
                 </button>
             </div>
 
