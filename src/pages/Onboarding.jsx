@@ -12,12 +12,14 @@ const Onboarding = ({ onFinish }) => {
         if (step === 2) {
             // Final Step: Request Permission
             setIsLoading(true);
-            const token = await requestNotificationPermission();
-            if (token) {
-                updateProfile({ fcmToken: token });
-                alert("Notifications enabled! You'll receive a test message soon.");
-            } else {
-                alert("Notifications skipped. You can enable them later in settings.");
+            try {
+                const token = await requestNotificationPermission();
+                if (token) {
+                    updateProfile({ fcmToken: token });
+                    alert("Notifications enabled! You'll receive a test message soon.");
+                }
+            } catch (e) {
+                alert(`Error: ${e.message}\n(Please check browser settings or Vercel Env Vars)`);
             }
             setIsLoading(false);
             completeOnboarding(name || 'Friend');

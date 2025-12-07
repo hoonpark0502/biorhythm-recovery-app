@@ -17,23 +17,26 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 export const messaging = getMessaging(app);
 
-// Function to request permission and get token
 export const requestNotificationPermission = async () => {
     try {
         const permission = await Notification.requestPermission();
-        if (permission === 'granted') {
-            // TODO: Replace with your VAPID Key from Firebase Console -> Cloud Messaging -> Web Push certificates
-            const vapidKey = "BDraOyRSpQPYXSS3oPhIJa0MkxBmWLS97bNublcdepKSXEAI3afT6iIZ2BrejanuTLSJl1V-XZNMY98VKmQxUf8";
-
-            const token = await getToken(messaging, { vapidKey });
-            console.log("FCM Token:", token);
-            return token;
-        } else {
-            console.log('Notification permission denied.');
-            return null;
+        if (permission !== 'granted') {
+            throw new Error(`Permission not granted (Status: ${permission})`);
         }
+
+        // TODO: Replace with your VAPID Key from Firebase Console -> Cloud Messaging -> Web Push certificates
+        const vapidKey = "BDraOyRSpQPYXSS3oPhIJa0MkxBmWLS97bNublcdepKSXEAI3afT6iIZ2BrejanuTLSJl1V-XZNMY98VKmQxUf8";
+
+        if (!vapidKey || vapidKey.startsWith("REPLACE")) {
+            throw new Error("VAPID Key is missing or invalid.");
+        }
+
+        const token = await getToken(messaging, { vapidKey });
+        console.log("FCM Token:", token);
+        return token;
+
     } catch (error) {
         console.error('An error occurred while retrieving token. ', error);
-        return null;
+        throw error; // Propagate error to UI
     }
 };
