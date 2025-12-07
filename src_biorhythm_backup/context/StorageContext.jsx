@@ -106,6 +106,8 @@ export function StorageProvider({ children }) {
             const earned = 0.2;
             newTokens = (parseFloat(newTokens) + earned).toFixed(1); // Keep decimal precision
 
+            // alert(`✨ Well done! +${earned} Token`); // Optional: less intrusive toast is better, but alert works for MVP
+
             return {
                 ...prev,
                 dailyRoutineCount: newDailyCount,
@@ -127,7 +129,7 @@ export function StorageProvider({ children }) {
             // Deduct 0.5
             updateProfile({
                 tokens: parseFloat((profile.tokens - 0.5).toFixed(1)),
-                lastRefreshTime: NOW
+                lastRefreshTime: NOW // Reset timer too? Optional. Let's reset to prevent double abuse.
             });
             return true; // Success
         } else {
@@ -153,6 +155,7 @@ export function StorageProvider({ children }) {
             completeOnboarding,
             saveDailyLog,
             getTodayLog,
+            setRoutine,
             setRoutine,
             completeRoutine,
             refreshRoutine

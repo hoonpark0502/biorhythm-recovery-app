@@ -11,13 +11,7 @@ const BreathingStep = ({ onNext }) => {
         setIsBreathing(true);
         if (audioRef.current) {
             audioRef.current.volume = 0.5;
-            const playPromise = audioRef.current.play();
-            if (playPromise !== undefined) {
-                playPromise.catch(e => {
-                    console.error("Audio blocked", e);
-                    alert("Could not play sound. Please check your device volume or Silent Mode switch.");
-                });
-            }
+            audioRef.current.play().catch(e => console.log("Audio blocked", e));
         }
     };
 
@@ -40,13 +34,7 @@ const BreathingStep = ({ onNext }) => {
         <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <h2 style={{ marginBottom: '20px' }}>Deep Breathing</h2>
 
-            <audio
-                ref={audioRef}
-                loop
-                crossOrigin="anonymous"
-                playsInline
-                src="https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2393.mp3"
-            />
+            <audio ref={audioRef} loop src="https://actions.google.com/sounds/v1/nature/rain_heavy_loud.ogg" />
 
             {!isBreathing ? (
                 <div className="fade-in">
@@ -57,7 +45,6 @@ const BreathingStep = ({ onNext }) => {
                     <button onClick={handleStart} className="btn-primary" style={{ padding: '16px 48px' }}>
                         Start
                     </button>
-                    <p style={{ fontSize: '0.8rem', color: '#999', marginTop: '16px' }}>(Turn off Silent Mode)</p>
                 </div>
             ) : (
                 <div className="fade-in">

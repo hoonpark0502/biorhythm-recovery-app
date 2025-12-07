@@ -41,19 +41,10 @@ const Onboarding = ({ onFinish }) => {
             {step === 0 && (
                 <div style={{ textAlign: 'center' }}>
                     <h1 style={{ color: 'var(--color-primary-dark)', marginBottom: '16px', fontSize: '2rem' }}>Deep Breath.</h1>
-                    <p style={{ color: 'var(--color-text-sub)', fontSize: '1.1rem', lineHeight: '1.6', marginBottom: '24px' }}>
+                    <p style={{ color: 'var(--color-text-sub)', fontSize: '1.1rem', lineHeight: '1.6' }}>
                         Welcome to your safe space.<br />
                         Let's find your rhythm again, together.
                     </p>
-
-                    <div style={{ background: '#FFF4E6', padding: '16px', borderRadius: '12px', fontSize: '0.9rem', color: '#D97706', textAlign: 'left' }}>
-                        <strong>⚠️ Important:</strong><br />
-                        To receive alarms, you <b>MUST</b> add this app to your Home Screen.
-                        <br /><br />
-                        1. Tap 'Share' (iOS) or 'Menu' (Android)<br />
-                        2. Select <b>'Add to Home Screen'</b><br />
-                        3. Open the app from the Home Screen
-                    </div>
                 </div>
             )}
 
