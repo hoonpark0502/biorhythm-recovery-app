@@ -1,5 +1,6 @@
 import React from 'react';
 import { StorageProvider, useStorage } from './context/StorageContext';
+import { AuthProvider } from './context/AuthContext';
 import Onboarding from './pages/Onboarding';
 import Home from './pages/Home';
 import DailyCheck from './pages/DailyCheck';
@@ -38,9 +39,11 @@ function AppContent() {
 
 function App() {
     return (
-        <StorageProvider>
-            <AppContent />
-        </StorageProvider>
+        <AuthProvider>
+            <StorageProvider>
+                <AppContent />
+            </StorageProvider>
+        </AuthProvider>
     );
 }
 

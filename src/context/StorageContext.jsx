@@ -1,4 +1,7 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { db } from '../firebase';
+import { doc, getDoc, setDoc } from 'firebase/firestore';
+import { useAuth } from './AuthContext';
 
 const StorageContext = createContext();
 
@@ -21,6 +24,12 @@ const initialProfile = {
 };
 
 export function StorageProvider({ children }) {
+    const { user } = useAuth();
+
+    // Cloud Sync State
+    const [isSynced, setIsSynced] = useState(false);
+
+    // Initial State
     const [profile, setProfile] = useState(() => {
         const saved = localStorage.getItem(STORAGE_KEYS.PROFILE);
         return saved ? JSON.parse(saved) : initialProfile;
@@ -40,6 +49,57 @@ export function StorageProvider({ children }) {
         const saved = localStorage.getItem('bio_garden');
         return saved ? JSON.parse(saved) : [];
     });
+
+    // 1. PULL from Firestore on login
+    useEffect(() => {
+        if (!user) return;
+
+        const syncData = async () => {
+            try {
+                const docRef = doc(db, "users", user.uid);
+                const docSnap = await getDoc(docRef);
+
+                if (docSnap.exists()) {
+                    const data = docSnap.data();
+                    console.log("Cloud data found:", data);
+
+                    // Merge Strategy: Remote overwrites local for simplicity in this MVP
+                    if (data.profile) setProfile(data.profile);
+                    if (data.logs) setLogs(data.logs);
+                    if (data.garden) setGarden(data.garden);
+                } else {
+                    console.log("No cloud data. Creating...");
+                }
+                setIsSynced(true);
+            } catch (error) {
+                console.error("Sync Error:", error);
+            }
+        };
+
+        syncData();
+    }, [user]);
+
+    // 2. PUSH to Firestore on change (Debounced)
+    useEffect(() => {
+        if (!user || !isSynced) return;
+
+        const timeoutId = setTimeout(async () => {
+            try {
+                const docRef = doc(db, "users", user.uid);
+                await setDoc(docRef, {
+                    profile,
+                    logs,
+                    garden,
+                    lastUpdated: new Date().toISOString()
+                }, { merge: true });
+                console.log("Synced to Cloud");
+            } catch (e) {
+                console.error("Push Error", e);
+            }
+        }, 3000); // 3-sec debounce
+
+        return () => clearTimeout(timeoutId);
+    }, [profile, logs, garden, user, isSynced]);
 
     // Persist effects
     useEffect(() => {

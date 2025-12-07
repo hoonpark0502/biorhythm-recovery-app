@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useStorage } from '../context/StorageContext';
+import { useAuth } from '../context/AuthContext';
+import VisitGarden from '../components/VisitGarden';
 
 const PLANT_TYPES = {
     sunflower: { name: 'Sunflower', cost: 0.5, icon: '🌻', stages: ['🌰', '🌱', '🌿', '🌻'] },
@@ -9,6 +11,7 @@ const PLANT_TYPES = {
 
 const Garden = ({ onBack }) => {
     const { profile, garden, buyPlant } = useStorage();
+    const { user } = useAuth();
 
     const handleBuy = (type) => {
         if (confirm(`Buy ${PLANT_TYPES[type].name} seed for ${PLANT_TYPES[type].cost} tokens?`)) {
@@ -104,6 +107,15 @@ const Garden = ({ onBack }) => {
                         </button>
                     </div>
                 ))}
+
+                <div style={{ marginTop: '24px', textAlign: 'center', color: '#666', fontSize: '0.9rem' }}>
+                    <p>Complete daily routines to grow your plants!</p>
+                </div>
+            </div>
+
+            {/* Social Feature */}
+            <div style={{ marginTop: '32px' }}>
+                <VisitGarden currentUserUid={user?.uid} onBack={() => { }} />
             </div>
         </div>
     );
