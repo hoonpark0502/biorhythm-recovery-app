@@ -4,146 +4,150 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const BreathingStep = ({ onNext }) => {
     const [isBreathing, setIsBreathing] = useState(false);
-    const [soundType, setSoundType] = useState('rain'); // rain, wind, stream
+    const [soundType, setSoundType] = useState('rain'); // rain, fire, harmony
+    const [audioError, setAudioError] = useState(false);
 
-    // Use refs to persist audio context across renders
-    const audioCtxRef = useRef(null);
-    const gainNodeRef = useRef(null);
-    const sourceNodeRef = useRef(null);
-    const filterNodeRef = useRef(null);
+    // Refs
+    const audioRef = useRef(null); // The <audio> element
+    const audioCtxRef = useRef(null); // For synth fallback
+    const nodesRef = useRef([]);
 
-    // --- Audio Generation Logic ---
-    const createNoiseBuffer = (ctx) => {
-        const bufferSize = ctx.sampleRate * 2; // 2 sec loop
-        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const data = buffer.getChannelData(0);
-
-        // Generate White Noise first
-        for (let i = 0; i < bufferSize; i++) {
-            data[i] = Math.random() * 2 - 1;
-        }
-
-        // Processing for Pink/Brown noise happens via filtering or algo
-        // For simplicity:
-        // Brown (Rain-like): 1/f^2
-        if (soundType === 'rain') {
-            let lastOut = 0;
-            for (let i = 0; i < bufferSize; i++) {
-                const white = Math.random() * 2 - 1;
-                lastOut = (lastOut + (0.02 * white)) / 1.02;
-                data[i] = lastOut * 3.5;
-            }
-        }
-        return buffer;
-    };
-
-    const setupAudioGraph = (ctx, type) => {
-        // Disconnect old nodes if any
-        if (sourceNodeRef.current) {
-            try { sourceNodeRef.current.stop(); } catch (e) { }
-            sourceNodeRef.current.disconnect();
-        }
-
-        // 1. Create Source with appropriate buffer
-        let buffer;
-        const bufferSize = ctx.sampleRate * 2;
-        const tempBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
-        const data = tempBuffer.getChannelData(0);
-
-        if (type === 'rain') {
-            // Brown Noise algo
-            let lastOut = 0;
-            for (let i = 0; i < bufferSize; i++) {
-                const white = Math.random() * 2 - 1;
-                lastOut = (lastOut + (0.02 * white)) / 1.02;
-                data[i] = lastOut * 3.5;
-            }
-        } else {
-            // White Noise (base for others)
-            for (let i = 0; i < bufferSize; i++) {
-                data[i] = Math.random() * 2 - 1;
-            }
-        }
-        buffer = tempBuffer;
-
-        const source = ctx.createBufferSource();
-        source.buffer = buffer;
-        source.loop = true;
-
-        // 2. Create Filter based on Type
-        const filter = ctx.createBiquadFilter();
-        if (type === 'rain') {
-            filter.type = 'lowpass';
-            filter.frequency.value = 400; // Muffled
-        } else if (type === 'wind') {
-            filter.type = 'bandpass';
-            filter.frequency.value = 500; // Hollow
-            filter.Q.value = 0.5;
-        } else if (type === 'stream') {
-            filter.type = 'lowpass';
-            filter.frequency.value = 800; // Crisper water
-        }
-
-        // 3. Gain
-        const gain = ctx.createGain();
-        gain.gain.value = type === 'wind' ? 0.8 : 0.15;
-
-        // Connect
-        source.connect(filter);
-        filter.connect(gain);
-        gain.connect(ctx.destination);
-
-        source.start(0);
-
-        // Store
-        sourceNodeRef.current = source;
-        filterNodeRef.current = filter;
-        gainNodeRef.current = gain;
-    };
-
-    const handleStart = () => {
+    // --- Synth Logic (Fallback for Harmony) ---
+    const startSynth = () => {
         if (!audioCtxRef.current) {
             const AudioContext = window.AudioContext || window.webkitAudioContext;
             audioCtxRef.current = new AudioContext();
         }
-
         const ctx = audioCtxRef.current;
         if (ctx.state === 'suspended') ctx.resume();
 
-        setupAudioGraph(ctx, soundType);
+        // Cleanup
+        nodesRef.current.forEach(n => { try { n.stop() } catch (e) { }; try { n.disconnect() } catch (e) { } });
+        nodesRef.current = [];
+
+        // Ambient Chord (Cmaj7)
+        const freqs = [261.63, 329.63, 392.00, 493.88];
+        freqs.forEach((f, i) => {
+            const osc = ctx.createOscillator();
+            osc.type = 'sine';
+            osc.frequency.value = f;
+
+            const gain = ctx.createGain();
+            gain.gain.value = 0.05;
+
+            const lfo = ctx.createOscillator();
+            lfo.frequency.value = 0.1 + (i * 0.05);
+            const lfoGain = ctx.createGain();
+            lfoGain.gain.value = 0.02;
+
+            lfo.connect(lfoGain);
+            lfoGain.connect(gain.gain);
+            osc.connect(gain);
+            gain.connect(ctx.destination);
+
+            osc.start();
+            lfo.start();
+            nodesRef.current.push(osc, lfo, lfoGain, gain);
+        });
+    };
+
+    const stopSynth = () => {
+        nodesRef.current.forEach(n => { try { n.stop() } catch (e) { }; try { n.disconnect() } catch (e) { } });
+        nodesRef.current = [];
+        if (audioCtxRef.current) audioCtxRef.current.suspend();
+    };
+
+    // --- Main Control ---
+    const getAudioSrc = (type) => {
+        if (type === 'rain') return '/sounds/rain.mp3';
+        if (type === 'fire') return '/sounds/fire.mp3';
+        if (type === 'harmony') return '/sounds/harmony.mp3';
+        return '';
+    };
+
+    const handleStart = () => {
         setIsBreathing(true);
+        const src = getAudioSrc(soundType);
+
+        // Reset state
+        setAudioError(false);
+        stopSynth();
+
+        if (audioRef.current) {
+            audioRef.current.src = src;
+            audioRef.current.volume = 0.5;
+            audioRef.current.load();
+            const playPromise = audioRef.current.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    console.log("Audio play failed or file missing:", error);
+                    // If file fails, and it's harmony, switch to synth
+                    if (soundType === 'harmony') {
+                        setAudioError(true);
+                        startSynth(); // Fallback
+                    }
+                });
+            }
+        }
     };
 
     const handleSwitchSound = (newType) => {
         setSoundType(newType);
-        // If already playing, switch smoothly
-        if (isBreathing && audioCtxRef.current) {
-            setupAudioGraph(audioCtxRef.current, newType);
+        if (isBreathing) {
+            // Stop current
+            stopSynth(); // Stop synth if running
+            setAudioError(false);
+
+            const src = getAudioSrc(newType);
+            if (audioRef.current) {
+                // Pause specific handling for smooth transition? 
+                // For MVP: just switch src
+                audioRef.current.src = src;
+                audioRef.current.play().catch(() => {
+                    if (newType === 'harmony') {
+                        setAudioError(true);
+                        startSynth();
+                    }
+                });
+            }
         }
     };
 
     const handleStop = () => {
         setIsBreathing(false);
-        if (sourceNodeRef.current) {
-            try { sourceNodeRef.current.stop(); } catch (e) { }
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
         }
-        if (audioCtxRef.current) {
-            try { audioCtxRef.current.close(); } catch (e) { }
-        }
-        audioCtxRef.current = null;
+        stopSynth();
     };
 
-    // Cleanup on unmount
     useEffect(() => {
         return () => {
-            if (audioCtxRef.current) {
-                try { audioCtxRef.current.close(); } catch (e) { }
-            }
+            handleStop();
+            if (audioCtxRef.current) audioCtxRef.current.close();
         };
     }, []);
 
+    // Error handler for <audio> tag itself
+    const handleAudioError = () => {
+        console.log("Audio tag error for:", soundType);
+        if (soundType === 'harmony') {
+            setAudioError(true);
+            if (isBreathing) startSynth();
+        }
+    };
+
     return (
         <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            {/* Hidden Audio Element */}
+            <audio
+                ref={audioRef}
+                loop
+                crossOrigin="anonymous"
+                onError={handleAudioError}
+            />
+
             <h2 style={{ marginBottom: '20px' }}>Deep Breathing</h2>
 
             {!isBreathing ? (
@@ -157,8 +161,8 @@ const BreathingStep = ({ onNext }) => {
                     <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '32px' }}>
                         {[
                             { id: 'rain', label: 'Rain', icon: '🌧️' },
-                            { id: 'wind', label: 'Wind', icon: '🌬️' },
-                            { id: 'stream', label: 'Stream', icon: '💧' },
+                            { id: 'fire', label: 'Fire', icon: '🔥' },
+                            { id: 'harmony', label: 'Classical', icon: '🎹' },
                         ].map(s => (
                             <button
                                 key={s.id}
@@ -191,9 +195,13 @@ const BreathingStep = ({ onNext }) => {
                         Inhale (4s) ... Hold (4s) ... Exhale (6s)
                     </p>
 
+                    {audioError && soundType === 'harmony' && (
+                        <p style={{ fontSize: '0.75rem', color: '#aaa', marginTop: '8px' }}>*Playing synthesized harmony (External file failed to load)</p>
+                    )}
+
                     {/* Switcher while playing */}
                     <div style={{ marginTop: '24px', display: 'flex', gap: '8px', justifyContent: 'center' }}>
-                        {['rain', 'wind', 'stream'].map(t => (
+                        {['rain', 'fire', 'harmony'].map(t => (
                             <button
                                 key={t}
                                 onClick={() => handleSwitchSound(t)}
