@@ -19,6 +19,10 @@ export const messaging = getMessaging(app);
 
 export const requestNotificationPermission = async () => {
     try {
+        if (!('Notification' in window)) {
+            throw new Error("Notifications are not supported in this browser.\n(If on iPhone, tap Share -> 'Add to Home Screen' and open the app from there to enable notifications.)");
+        }
+
         const permission = await Notification.requestPermission();
         if (permission !== 'granted') {
             throw new Error(`Permission not granted (Status: ${permission})`);
