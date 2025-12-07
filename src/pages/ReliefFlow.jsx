@@ -1,78 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
-
-// --- Sub-components for Relief Steps ---
-
-const BreathingStep = ({ onNext }) => {
-    const [phase, setPhase] = useState('Ready');
-    const [isBreathing, setIsBreathing] = useState(false);
-    const audioRef = useRef(null);
-
-    const handleStart = () => {
-        if (audioRef.current) {
-            audioRef.current.volume = 0.5;
-            // iOS Fix: Call play() directly on the ref
-            const playPromise = audioRef.current.play();
-
-            if (playPromise !== undefined) {
-                playPromise
-                    .then(() => {
-                        // Success
-                        setIsBreathing(true);
-                    })
-                    .catch(e => {
-                        console.error("Audio blocked", e);
-                        alert(`Audio Support Error: ${e.message}\n(Try turning off Silent Mode or check volume)`);
-                    });
-            }
-        }
-    };
-
-    const handleStop = () => {
-        setIsBreathing(false);
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
-        }
-    };
-
-    // Cleanup on unmount
-    useEffect(() => {
-        return () => {
-            if (audioRef.current) audioRef.current.pause();
-        };
-    }, []);
-
-    return (
-        <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <h2 style={{ marginBottom: '20px' }}>Deep Breathing</h2>
-
-            {/* Reliable MP3 Source from Pixabay (Rain) */}
-            <audio
-                ref={audioRef}
-                loop
-                crossOrigin="anonymous"
-                preload="auto"
-                playsInline
-                src="https://cdn.pixabay.com/audio/2022/03/15/audio_c8c8a73467.mp3"
-            />
-
-            {!isBreathing ? (
-                <div className="fade-in">
-                    <p style={{ marginBottom: '32px', color: '#666' }}>
-                        Calm rain sounds will play.<br />
-                        Follow the circle.
-                    </p>
-                    <button onClick={handleStart} className="btn-primary" style={{ padding: '16px 48px' }}>
-                        Start
-                    </button>
-                    <p style={{ fontSize: '0.8rem', color: '#999', marginTop: '16px' }}>(Turn off Silent Mode)</p>
-                </div>
-            ) : (
-                <div className="fade-in">
-                    <div className="breathing-circle"></div>
-                    <p style={{ marginTop: '40px', color: '#666' }}>
-                        Inhale (4s) ... Hold (4s) ... Exhale (6s)
-                    </p>
+                    </p >
                     <button onClick={handleStop} style={{ marginTop: '32px', background: 'transparent', border: '2px solid #eee', padding: '8px 24px', borderRadius: '20px', cursor: 'pointer' }}>
                         Stop
                     </button>
@@ -81,10 +7,10 @@ const BreathingStep = ({ onNext }) => {
                             I feel calmer
                         </button>
                     </div>
-                </div>
+                </div >
             )}
 
-            <style>{`
+<style>{`
         .breathing-circle {
           width: 200px;
           height: 200px;
@@ -100,7 +26,7 @@ const BreathingStep = ({ onNext }) => {
           100% { transform: scale(0.4); opacity: 0.4; } 
         }
       `}</style>
-        </div>
+        </div >
     );
 };
 
