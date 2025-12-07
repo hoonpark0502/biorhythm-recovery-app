@@ -1,4 +1,110 @@
-                    </p >
+import React, { useState, useEffect, useRef } from 'react';
+
+// --- Sub-components for Relief Steps ---
+
+const BreathingStep = ({ onNext }) => {
+    const [isBreathing, setIsBreathing] = useState(false);
+    // Use refs to persist audio context across renders without triggering re-renders
+    const audioCtxRef = useRef(null);
+    const gainNodeRef = useRef(null);
+    const sourceNodeRef = useRef(null);
+
+    // Generate Brown Noise (sounds like Heavy Rain)
+    const createRainBuffer = (ctx) => {
+        const bufferSize = ctx.sampleRate * 2; // 2 seconds loop
+        const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        let lastOut = 0;
+        for (let i = 0; i < bufferSize; i++) {
+            const white = Math.random() * 2 - 1;
+            lastOut = (lastOut + (0.02 * white)) / 1.02;
+            data[i] = lastOut * 3.5; // Gain compensation
+        }
+        return buffer;
+    };
+
+    const handleStart = () => {
+        try {
+            // 1. Create Context
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            const ctx = new AudioContext();
+            audioCtxRef.current = ctx;
+
+            // 2. Create Noise
+            const buffer = createRainBuffer(ctx);
+            const source = ctx.createBufferSource();
+            source.buffer = buffer;
+            source.loop = true;
+
+            // 3. Create Gain (Volume)
+            const gainNode = ctx.createGain();
+            gainNode.gain.value = 0.15; // Soft rain volume
+
+            // 4. Connect
+            source.connect(gainNode);
+            gainNode.connect(ctx.destination);
+
+            // 5. Store refs
+            sourceNodeRef.current = source;
+            gainNodeRef.current = gainNode;
+
+            // 6. Start (iOS requires resume() on user gesture usually)
+            if (ctx.state === 'suspended') {
+                ctx.resume();
+            }
+            source.start(0);
+
+            setIsBreathing(true);
+        } catch (e) {
+            console.error("Web Audio API Error", e);
+            alert("Could not generate sound. Please check volume/silent mode.");
+            // Allow proceeding even if sound fails
+            setIsBreathing(true);
+        }
+    };
+
+    const handleStop = () => {
+        setIsBreathing(false);
+        // Stop and Cleanup
+        if (sourceNodeRef.current) {
+            try { sourceNodeRef.current.stop(); } catch (e) { }
+        }
+        if (audioCtxRef.current) {
+            try { audioCtxRef.current.close(); } catch (e) { }
+        }
+        audioCtxRef.current = null;
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
+        return () => {
+            if (audioCtxRef.current) {
+                try { audioCtxRef.current.close(); } catch (e) { }
+            }
+        };
+    }, []);
+
+    return (
+        <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+            <h2 style={{ marginBottom: '20px' }}>Deep Breathing</h2>
+
+            {!isBreathing ? (
+                <div className="fade-in">
+                    <p style={{ marginBottom: '32px', color: '#666' }}>
+                        Calm rain sounds will play.<br />
+                        Follow the circle.
+                    </p>
+                    <button onClick={handleStart} className="btn-primary" style={{ padding: '16px 48px' }}>
+                        Start
+                    </button>
+                    <p style={{ fontSize: '0.8rem', color: '#999', marginTop: '16px' }}>(Turn off Silent Mode)</p>
+                </div>
+            ) : (
+                <div className="fade-in">
+                    <div className="breathing-circle"></div>
+                    <p style={{ marginTop: '40px', color: '#666' }}>
+                        Inhale (4s) ... Hold (4s) ... Exhale (6s)
+                    </p>
                     <button onClick={handleStop} style={{ marginTop: '32px', background: 'transparent', border: '2px solid #eee', padding: '8px 24px', borderRadius: '20px', cursor: 'pointer' }}>
                         Stop
                     </button>
@@ -7,10 +113,10 @@
                             I feel calmer
                         </button>
                     </div>
-                </div >
+                </div>
             )}
 
-<style>{`
+            <style>{`
         .breathing-circle {
           width: 200px;
           height: 200px;
@@ -26,7 +132,7 @@
           100% { transform: scale(0.4); opacity: 0.4; } 
         }
       `}</style>
-        </div >
+        </div>
     );
 };
 
