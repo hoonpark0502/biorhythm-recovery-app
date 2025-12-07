@@ -1,0 +1,20 @@
+{
+    "name": "Biorhythm Recovery",
+    "short_name": "MyRhythm",
+    "start_url": ".",
+    "display": "standalone",
+    "background_color": "#FDFDFB",
+    "theme_color": "#FDFDFB",
+    "icons": [
+        {
+            "src": "pwa-192x192.png",
+            "sizes": "192x192",
+            "type": "image/png"
+        },
+        {
+            "src": "pwa-512x512.png",
+            "sizes": "512x512",
+            "type": "image/png"
+        }
+    ]
+}
