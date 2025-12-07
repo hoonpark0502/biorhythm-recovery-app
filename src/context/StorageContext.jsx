@@ -34,6 +34,11 @@ export function StorageProvider({ children }) {
         return saved ? JSON.parse(saved) : null;
     });
 
+    const [garden, setGarden] = useState(() => {
+        const saved = localStorage.getItem('bio_garden');
+        return saved ? JSON.parse(saved) : [];
+    });
+
     // Persist effects
     useEffect(() => {
         localStorage.setItem(STORAGE_KEYS.PROFILE, JSON.stringify(profile));
@@ -48,6 +53,10 @@ export function StorageProvider({ children }) {
             localStorage.setItem(STORAGE_KEYS.ROUTINE, JSON.stringify(todayRoutine));
         }
     }, [todayRoutine]);
+
+    useEffect(() => {
+        localStorage.setItem('bio_garden', JSON.stringify(garden));
+    }, [garden]);
 
     // Actions
     const updateProfile = (updates) => {
@@ -95,24 +104,27 @@ export function StorageProvider({ children }) {
             let newDailyCount = prev.dailyRoutineCount || 0;
             let newTokens = prev.tokens || 0;
 
-            // Reset count if new day
             if (lastDate !== today) {
                 newDailyCount = 0;
             }
 
             newDailyCount += 1;
-
-            // Rule: 0.2 Tokens per routine (Immediate Feedback)
             const earned = 0.2;
-            newTokens = (parseFloat(newTokens) + earned).toFixed(1); // Keep decimal precision
+            newTokens = (parseFloat(newTokens) + earned).toFixed(1);
 
             return {
                 ...prev,
                 dailyRoutineCount: newDailyCount,
-                tokens: parseFloat(newTokens), // Store as number
+                tokens: parseFloat(newTokens),
                 lastRoutineDate: today
             };
         });
+
+        // 4. Grow Plants! (All existing plants grow slightly)
+        setGarden(prev => prev.map(plant => {
+            if (plant.stage < 3) return { ...plant, stage: plant.stage + 1 }; // Grow next stage
+            return plant;
+        }));
     }
 
     const refreshRoutine = (isPaid) => {
@@ -124,24 +136,40 @@ export function StorageProvider({ children }) {
                 alert("Not enough tokens! You need 0.5 🪙");
                 return false;
             }
-            // Deduct 0.5
             updateProfile({
                 tokens: parseFloat((profile.tokens - 0.5).toFixed(1)),
                 lastRefreshTime: NOW
             });
-            return true; // Success
+            return true;
         } else {
-            // Free check
             const last = profile.lastRefreshTime || 0;
             if (NOW - last < COOLDOWN) {
                 const minLeft = Math.ceil((COOLDOWN - (NOW - last)) / 60000);
                 alert(`Please wait ${minLeft} minutes for a free refresh.\nOr spend 0.5 tokens to refresh immediately.`);
                 return false;
             }
-            // Success free
             updateProfile({ lastRefreshTime: NOW });
             return true;
         }
+    }
+
+    const buyPlant = (type, cost) => {
+        if (profile.tokens < cost) {
+            alert(`Not enough tokens! Need ${cost} 🪙`);
+            return false;
+        }
+        // Deduct cost
+        updateProfile({ tokens: parseFloat((profile.tokens - cost).toFixed(1)) });
+
+        // Add Plant
+        const newPlant = {
+            id: Date.now(),
+            type, // 'sunflower', 'rose', 'tree'
+            stage: 0, // 0=Seed, 1=Sprout, 2=Bloom, 3=Mature
+            plantedAt: new Date().toISOString()
+        };
+        setGarden(prev => [...prev, newPlant]);
+        return true;
     }
 
     return (
@@ -149,13 +177,15 @@ export function StorageProvider({ children }) {
             profile,
             logs,
             todayRoutine,
+            garden,
             updateProfile,
             completeOnboarding,
             saveDailyLog,
             getTodayLog,
             setRoutine,
             completeRoutine,
-            refreshRoutine
+            refreshRoutine,
+            buyPlant
         }}>
             {children}
         </StorageContext.Provider>

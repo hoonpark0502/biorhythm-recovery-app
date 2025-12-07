@@ -4,74 +4,126 @@ import React, { useState, useEffect, useRef } from 'react';
 
 const BreathingStep = ({ onNext }) => {
     const [isBreathing, setIsBreathing] = useState(false);
-    // Use refs to persist audio context across renders without triggering re-renders
+    const [soundType, setSoundType] = useState('rain'); // rain, wind, stream
+
+    // Use refs to persist audio context across renders
     const audioCtxRef = useRef(null);
     const gainNodeRef = useRef(null);
     const sourceNodeRef = useRef(null);
+    const filterNodeRef = useRef(null);
 
-    // Generate Brown Noise (sounds like Heavy Rain)
-    const createRainBuffer = (ctx) => {
-        const bufferSize = ctx.sampleRate * 2; // 2 seconds loop
+    // --- Audio Generation Logic ---
+    const createNoiseBuffer = (ctx) => {
+        const bufferSize = ctx.sampleRate * 2; // 2 sec loop
         const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
         const data = buffer.getChannelData(0);
-        let lastOut = 0;
+
+        // Generate White Noise first
         for (let i = 0; i < bufferSize; i++) {
-            const white = Math.random() * 2 - 1;
-            lastOut = (lastOut + (0.02 * white)) / 1.02;
-            data[i] = lastOut * 3.5; // Gain compensation
+            data[i] = Math.random() * 2 - 1;
+        }
+
+        // Processing for Pink/Brown noise happens via filtering or algo
+        // For simplicity:
+        // Brown (Rain-like): 1/f^2
+        if (soundType === 'rain') {
+            let lastOut = 0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                lastOut = (lastOut + (0.02 * white)) / 1.02;
+                data[i] = lastOut * 3.5;
+            }
         }
         return buffer;
     };
 
-    const handleStart = () => {
-        try {
-            // 1. Create Context
-            const AudioContext = window.AudioContext || window.webkitAudioContext;
-            const ctx = new AudioContext();
-            audioCtxRef.current = ctx;
+    const setupAudioGraph = (ctx, type) => {
+        // Disconnect old nodes if any
+        if (sourceNodeRef.current) {
+            try { sourceNodeRef.current.stop(); } catch (e) { }
+            sourceNodeRef.current.disconnect();
+        }
 
-            // 2. Create Noise
-            const buffer = createRainBuffer(ctx);
-            const source = ctx.createBufferSource();
-            source.buffer = buffer;
-            source.loop = true;
+        // 1. Create Source with appropriate buffer
+        let buffer;
+        const bufferSize = ctx.sampleRate * 2;
+        const tempBuffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate);
+        const data = tempBuffer.getChannelData(0);
 
-            // 3. Create LowPass Filter (Make it sound muffled/calm)
-            const filterNode = ctx.createBiquadFilter();
-            filterNode.type = 'lowpass';
-            filterNode.frequency.value = 400; // 400Hz cut-off for "distant rain"
-
-            // 4. Create Gain (Volume)
-            const gainNode = ctx.createGain();
-            gainNode.gain.value = 0.2; // Slightly louder to compensate filter
-
-            // 5. Connect Graph: Source -> Filter -> Gain -> Dest
-            source.connect(filterNode);
-            filterNode.connect(gainNode);
-            gainNode.connect(ctx.destination);
-
-            // 6. Store refs
-            sourceNodeRef.current = source;
-            gainNodeRef.current = gainNode;
-
-            // 7. Start (iOS requires resume() on user gesture usually)
-            if (ctx.state === 'suspended') {
-                ctx.resume();
+        if (type === 'rain') {
+            // Brown Noise algo
+            let lastOut = 0;
+            for (let i = 0; i < bufferSize; i++) {
+                const white = Math.random() * 2 - 1;
+                lastOut = (lastOut + (0.02 * white)) / 1.02;
+                data[i] = lastOut * 3.5;
             }
-            source.start(0);
+        } else {
+            // White Noise (base for others)
+            for (let i = 0; i < bufferSize; i++) {
+                data[i] = Math.random() * 2 - 1;
+            }
+        }
+        buffer = tempBuffer;
 
-            setIsBreathing(true);
-        } catch (e) {
-            console.error("Web Audio API Error", e);
-            alert("Could not generate sound. Please check volume/silent mode.");
-            // Allow proceeding even if sound fails
-            setIsBreathing(true);
+        const source = ctx.createBufferSource();
+        source.buffer = buffer;
+        source.loop = true;
+
+        // 2. Create Filter based on Type
+        const filter = ctx.createBiquadFilter();
+        if (type === 'rain') {
+            filter.type = 'lowpass';
+            filter.frequency.value = 400; // Muffled
+        } else if (type === 'wind') {
+            filter.type = 'bandpass';
+            filter.frequency.value = 500; // Hollow
+            filter.Q.value = 0.5;
+        } else if (type === 'stream') {
+            filter.type = 'lowpass';
+            filter.frequency.value = 800; // Crisper water
+        }
+
+        // 3. Gain
+        const gain = ctx.createGain();
+        gain.gain.value = type === 'wind' ? 0.8 : 0.15;
+
+        // Connect
+        source.connect(filter);
+        filter.connect(gain);
+        gain.connect(ctx.destination);
+
+        source.start(0);
+
+        // Store
+        sourceNodeRef.current = source;
+        filterNodeRef.current = filter;
+        gainNodeRef.current = gain;
+    };
+
+    const handleStart = () => {
+        if (!audioCtxRef.current) {
+            const AudioContext = window.AudioContext || window.webkitAudioContext;
+            audioCtxRef.current = new AudioContext();
+        }
+
+        const ctx = audioCtxRef.current;
+        if (ctx.state === 'suspended') ctx.resume();
+
+        setupAudioGraph(ctx, soundType);
+        setIsBreathing(true);
+    };
+
+    const handleSwitchSound = (newType) => {
+        setSoundType(newType);
+        // If already playing, switch smoothly
+        if (isBreathing && audioCtxRef.current) {
+            setupAudioGraph(audioCtxRef.current, newType);
         }
     };
 
     const handleStop = () => {
         setIsBreathing(false);
-        // Stop and Cleanup
         if (sourceNodeRef.current) {
             try { sourceNodeRef.current.stop(); } catch (e) { }
         }
@@ -97,9 +149,36 @@ const BreathingStep = ({ onNext }) => {
             {!isBreathing ? (
                 <div className="fade-in">
                     <p style={{ marginBottom: '32px', color: '#666' }}>
-                        Calm rain sounds will play.<br />
-                        Follow the circle.
+                        Choose your calming sound<br />
+                        and follow the circle.
                     </p>
+
+                    {/* Sound Selector */}
+                    <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '32px' }}>
+                        {[
+                            { id: 'rain', label: 'Rain', icon: '🌧️' },
+                            { id: 'wind', label: 'Wind', icon: '🌬️' },
+                            { id: 'stream', label: 'Stream', icon: '💧' },
+                        ].map(s => (
+                            <button
+                                key={s.id}
+                                onClick={() => setSoundType(s.id)}
+                                style={{
+                                    background: soundType === s.id ? '#E0F2FE' : 'white',
+                                    border: `2px solid ${soundType === s.id ? '#0EA5E9' : '#eee'}`,
+                                    borderRadius: '16px',
+                                    padding: '12px',
+                                    width: '80px',
+                                    cursor: 'pointer',
+                                    transition: 'all 0.2s'
+                                }}
+                            >
+                                <div style={{ fontSize: '1.5rem', marginBottom: '4px' }}>{s.icon}</div>
+                                <div style={{ fontSize: '0.8rem', color: soundType === s.id ? '#0284C7' : '#999' }}>{s.label}</div>
+                            </button>
+                        ))}
+                    </div>
+
                     <button onClick={handleStart} className="btn-primary" style={{ padding: '16px 48px' }}>
                         Start
                     </button>
@@ -111,6 +190,23 @@ const BreathingStep = ({ onNext }) => {
                     <p style={{ marginTop: '40px', color: '#666' }}>
                         Inhale (4s) ... Hold (4s) ... Exhale (6s)
                     </p>
+
+                    {/* Switcher while playing */}
+                    <div style={{ marginTop: '24px', display: 'flex', gap: '8px', justifyContent: 'center' }}>
+                        {['rain', 'wind', 'stream'].map(t => (
+                            <button
+                                key={t}
+                                onClick={() => handleSwitchSound(t)}
+                                style={{
+                                    width: '12px', height: '12px', borderRadius: '50%',
+                                    border: 'none',
+                                    background: soundType === t ? 'var(--color-primary)' : '#ddd',
+                                    cursor: 'pointer'
+                                }}
+                            />
+                        ))}
+                    </div>
+
                     <button onClick={handleStop} style={{ marginTop: '32px', background: 'transparent', border: '2px solid #eee', padding: '8px 24px', borderRadius: '20px', cursor: 'pointer' }}>
                         Stop
                     </button>
@@ -129,7 +225,7 @@ const BreathingStep = ({ onNext }) => {
           background: var(--color-primary);
           border-radius: 50%;
           opacity: 0.8;
-          margin: 0 auto; /* CENTER ALIGNMENT FIX */
+          margin: 0 auto;
           animation: breath 14s infinite ease-in-out; 
         }
         @keyframes breath {

@@ -4,6 +4,9 @@ import Onboarding from './pages/Onboarding';
 import Home from './pages/Home';
 import DailyCheck from './pages/DailyCheck';
 import ReliefFlow from './pages/ReliefFlow';
+import Garden from './pages/Garden';
+import Stats from './pages/Stats';
+import './index.css';
 
 function AppContent() {
     const { profile } = useStorage();
@@ -20,6 +23,8 @@ function AppContent() {
             case 'home': return <Home onNavigate={setCurrentView} />;
             case 'dailyCheck': return <DailyCheck onBack={() => setCurrentView('home')} />;
             case 'relief': return <ReliefFlow onExit={() => setCurrentView('home')} />;
+            case 'garden': return <Garden onBack={() => setCurrentView('home')} />;
+            case 'stats': return <Stats onBack={() => setCurrentView('home')} />;
             default: return <Home onNavigate={setCurrentView} />;
         }
     };

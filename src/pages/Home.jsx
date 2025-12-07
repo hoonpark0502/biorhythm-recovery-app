@@ -55,11 +55,6 @@ const Home = ({ onNavigate }) => {
 
         setIsUpdating(true);
         try {
-            // Unsubscribe old topic logic is minimal here (we overwrite preference)
-            // Ideally backend handles unsubscribing from old, but for MVP we just subscribe to new.
-            // Topic: alarm_{time}
-            // Logic: Pass 'time' to auto-subscribe to alarm_{time}
-
             if (profile.fcmToken) {
                 await fetch('/api/subscribe', {
                     method: 'POST',
@@ -108,9 +103,13 @@ const Home = ({ onNavigate }) => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    {/* Token Badge */}
-                    <div style={{ background: '#FFF4E6', padding: '6px 10px', borderRadius: '20px', color: '#D97706', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                    {/* Token Badge (Clickable) */}
+                    <div
+                        onClick={() => onNavigate('garden')}
+                        style={{ background: '#FFF4E6', padding: '6px 12px', borderRadius: '20px', color: '#D97706', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', border: '1px solid rgba(217, 119, 6, 0.2)' }}
+                    >
                         <span>🪙</span> {profile.tokens || 0}
+                        <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>▶</span>
                     </div>
                     {/* Settings Button */}
                     <button
@@ -228,39 +227,6 @@ const Home = ({ onNavigate }) => {
                             <div style={{ textDecoration: localRoutine.completed ? 'line-through' : 'none', color: localRoutine.completed ? '#aaa' : '#333' }}>
                                 {localRoutine.text}
                             </div>
-                        </div>
-                        {localRoutine.completed && <p style={{ marginTop: '12px', fontSize: '0.8rem', color: '#D97706' }}>✨ Completed! +0.2 Token</p>}
-                    </div>
-                )}
-
-                {/* 4. Weekly Rhythm Visualization */}
-                <div style={{ background: 'white', padding: '24px', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)' }}>
-                    <h3 style={{ fontSize: '1.2rem', marginBottom: '16px' }}>Weekly Rhythm</h3>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '100px' }}>
-                        {weeklyData.map((day, i) => (
-                            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                                {day.mood ? (
-                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: `var(--mood-${day.mood})` }}></div>
-                                ) : <div style={{ width: '8px', height: '8px' }}></div>}
-
-                                <div style={{
-                                    width: '12px',
-                                    height: `${Math.min(day.sleep * 8, 60)}px`,
-                                    background: '#EDF2F7',
-                                    borderRadius: '4px',
-                                    position: 'relative'
-                                }}>
-                                    {day.sleep > 0 && <div style={{ position: 'absolute', bottom: 0, width: '100%', height: '100%', background: 'var(--color-primary)', opacity: 0.5, borderRadius: '4px' }}></div>}
-                                </div>
-                                <span style={{ fontSize: '0.75rem', color: '#aaa' }}>{day.day}</span>
-                            </div>
-                        ))}
-                    </div>
-                </div>
-
-            </div>
-        </div>
-    );
 };
 
-export default Home;
+                            export default Home;
