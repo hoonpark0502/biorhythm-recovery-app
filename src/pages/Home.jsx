@@ -203,6 +203,13 @@ const Home = ({ onNavigate }) => {
                     <div style={{ background: 'white', padding: '24px', borderRadius: 'var(--radius-lg)', boxShadow: 'var(--shadow-card)' }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
                             <h3 style={{ fontSize: '1.2rem', color: 'var(--color-primary-dark)', margin: 0 }}>Tiny Routine</h3>
+                            {/* Streak Indicator */}
+                            {profile.currentStreak > 1 && (
+                                <div style={{ background: '#FFF7ED', color: '#F97316', padding: '4px 8px', borderRadius: '12px', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                                    <span>🔥</span> {profile.currentStreak} Day Streak
+                                </div>
+                            )}
+
                             <div style={{ display: 'flex', gap: '8px' }}>
                                 <button onClick={() => handleRefresh(false)} style={{ fontSize: '0.8rem', padding: '4px 8px', border: '1px solid #ddd', borderRadius: '12px', background: 'white' }}>↻ Free (1h)</button>
                                 <button onClick={() => handleRefresh(true)} style={{ fontSize: '0.8rem', padding: '4px 8px', border: '1px solid #D97706', borderRadius: '12px', background: '#FFF4E6', color: '#D97706' }}>⚡ Pay 0.5</button>

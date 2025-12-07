@@ -52,6 +52,44 @@ const Stats = ({ onBack }) => {
 
     const stats = calculateStats();
 
+    // AI Insight Logic
+    const getPersonalizedInsight = () => {
+        const entries = Object.values(logs);
+        if (entries.length < 3) return "Keep tracking for a few more days to unlock personal insights! 🌱";
+
+        const moodScore = { great: 5, good: 4, soso: 3, bad: 2, worst: 1 };
+
+        let goodSleepMood = 0, goodSleepCount = 0;
+        let lowSleepMood = 0, lowSleepCount = 0;
+
+        entries.forEach(e => {
+            if (e.sleepHours && e.mood) {
+                const score = moodScore[e.mood];
+                if (e.sleepHours >= 7) {
+                    goodSleepMood += score;
+                    goodSleepCount++;
+                } else if (e.sleepHours <= 5) {
+                    lowSleepMood += score;
+                    lowSleepCount++;
+                }
+            }
+        });
+
+        if (goodSleepCount > 0 && lowSleepCount > 0) {
+            const avgGood = goodSleepMood / goodSleepCount;
+            const avgLow = lowSleepMood / lowSleepCount;
+            if (avgGood > avgLow + 0.5) {
+                return "💡 Analysis suggests you feel significantly better when you sleep over 7 hours. Rest is your superpower!";
+            }
+        }
+
+        // Generic positive reinforcement if no pattern found yet
+        const greatDays = entries.filter(e => e.mood === 'great').length;
+        if (greatDays > 0) return `You've had ${greatDays} 'Great' days recently. Remember what made those days special!`;
+
+        return "Tracking patterns helps you understand yourself better. You're doing great!";
+    };
+
     return (
         <div className="page-container fade-in" style={{ padding: '24px', paddingBottom: '100px' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
@@ -116,6 +154,16 @@ const Stats = ({ onBack }) => {
             <p style={{ textAlign: 'center', marginTop: '24px', fontSize: '0.9rem', color: '#888', fontStyle: 'italic' }}>
                 "Small steps every day."
             </p>
+            {/* AI INSIGHT CARD */}
+            <div style={{ background: 'linear-gradient(135deg, #E0F2FE 0%, #F0F9FF 100%)', padding: '24px', borderRadius: '16px', marginBottom: '24px', boxShadow: 'var(--shadow-card)', border: '1px solid #BAE6FD' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
+                    <span style={{ fontSize: '1.2rem' }}>✨</span>
+                    <h3 style={{ margin: 0, fontSize: '1rem', color: '#0369A1' }}>Pattern Insight</h3>
+                </div>
+                <p style={{ margin: 0, color: '#0C4A6E', fontSize: '0.95rem', lineHeight: '1.5' }}>
+                    {getPersonalizedInsight()}
+                </p>
+            </div>
         </div>
     );
 };

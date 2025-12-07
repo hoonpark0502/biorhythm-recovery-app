@@ -15,7 +15,9 @@ const initialProfile = {
     notificationTime: { morning: '08:00', evening: '20:00' },
     tokens: 0,
     dailyRoutineCount: 0,
-    lastRoutineDate: ''
+    lastRoutineDate: '',
+    currentStreak: 0,
+    bestStreak: 0
 };
 
 export function StorageProvider({ children }) {
@@ -98,14 +100,31 @@ export function StorageProvider({ children }) {
             [today]: { ...prev[today], routineCompleted: true }
         }));
 
-        // 3. Update Token Logic
+        // 3. Update Token Logic & Streaks
         setProfile(prev => {
             const lastDate = prev.lastRoutineDate || "";
             let newDailyCount = prev.dailyRoutineCount || 0;
             let newTokens = prev.tokens || 0;
+            let currentStreak = prev.currentStreak || 0;
+            let bestStreak = prev.bestStreak || 0;
 
             if (lastDate !== today) {
                 newDailyCount = 0;
+
+                // Streak Logic
+                const yesterday = new Date();
+                yesterday.setDate(yesterday.getDate() - 1);
+                const yesterdayStr = yesterday.toISOString().split('T')[0];
+
+                if (lastDate === yesterdayStr) {
+                    currentStreak += 1;
+                } else {
+                    currentStreak = 1; // Reset or Start new
+                }
+
+                if (currentStreak > bestStreak) {
+                    bestStreak = currentStreak;
+                }
             }
 
             newDailyCount += 1;
@@ -116,7 +135,9 @@ export function StorageProvider({ children }) {
                 ...prev,
                 dailyRoutineCount: newDailyCount,
                 tokens: parseFloat(newTokens),
-                lastRoutineDate: today
+                lastRoutineDate: today,
+                currentStreak,
+                bestStreak
             };
         });
 
