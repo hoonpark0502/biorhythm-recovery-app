@@ -1,59 +1,58 @@
 import React, { useState, useEffect, useRef } from 'react';
-
 // --- Sub-components for Relief Steps ---
 
 const BreathingStep = ({ onNext }) => {
     const [phase, setPhase] = useState('Ready');
     const [isBreathing, setIsBreathing] = useState(false);
-    const audioRef = useRef(null);
+    const [audioObj, setAudioObj] = useState(null);
 
     const handleStart = () => {
-        if (audioRef.current) {
-            audioRef.current.volume = 0.5;
-            // iOS requires play() to be triggered directly by user interaction.
-            // We must call play() BEFORE any state updates (re-renders).
-            const playPromise = audioRef.current.play();
+        // iOS Fix: Create Audio object directly on click
+        const audio = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2393.mp3");
+        audio.loop = true;
+        audio.volume = 0.5;
 
-            if (playPromise !== undefined) {
-                playPromise
-                    .then(() => {
-                        // Success: Now we can update the UI
-                        setIsBreathing(true);
-                    })
-                    .catch(e => {
-                        console.error("Audio blocked", e);
-                        alert(`Sound blocked by browser: ${e.message}\nTry tapping again strictly.`);
-                    });
-            }
+        // Explicitly load first (helps with "Operation not supported")
+        audio.load();
+
+        const playPromise = audio.play();
+
+        if (playPromise !== undefined) {
+            playPromise
+                .then(() => {
+                    // Success
+                    setAudioObj(audio); // Save to state to stop later
+                    setIsBreathing(true);
+                })
+                .catch(e => {
+                    console.error("Audio blocked", e);
+                    alert(`Sound blocked: ${e.message}\n(Try turning off Silent Mode switch on valid MP3)`);
+                });
         }
     };
 
     const handleStop = () => {
         setIsBreathing(false);
-        if (audioRef.current) {
-            audioRef.current.pause();
-            audioRef.current.currentTime = 0;
+        if (audioObj) {
+            audioObj.pause();
+            audioObj.currentTime = 0;
+            setAudioObj(null); // Clear state
         }
     };
 
     // Cleanup on unmount
     useEffect(() => {
         return () => {
-            if (audioRef.current) audioRef.current.pause();
+            if (audioObj) {
+                audioObj.pause();
+                setAudioObj(null);
+            }
         };
-    }, []);
+    }, [audioObj]);
 
     return (
         <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <h2 style={{ marginBottom: '20px' }}>Deep Breathing</h2>
-
-            <audio
-                ref={audioRef}
-                loop
-                crossOrigin="anonymous"
-                playsInline
-                src="https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2393.mp3"
-            />
 
             {!isBreathing ? (
                 <div className="fade-in">
