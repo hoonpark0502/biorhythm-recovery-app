@@ -2,36 +2,36 @@
 import { initializeApp, getApps, cert } from 'firebase-admin/app';
 import { getMessaging } from 'firebase-admin/messaging';
 
-if (!getApps().length) {
-    const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
-    initializeApp({
-        credential: cert(serviceAccount)
-    });
-}
-
 export default async function handler(req, res) {
+    // 1. Safe Initialization inside Handler
+    // This prevents build-time crashes if Env Vars are missing in build context.
     try {
-        // 1. Determine current hour in User's Timezone (Assume KR/JST +9 for this user, or UTC handling)
-        // Vercel Cron runs on UTC.
-        // If user wants 08:00 KST, that is 23:00 UTC (previous day).
-        // Let's assume the user inputs time in "Local (KST)" and we run Cron every hour.
+        if (!getApps().length) {
+            // Check if env var exists before parsing
+            if (!process.env.FIREBASE_SERVICE_ACCOUNT) {
+                throw new Error("Missing FIREBASE_SERVICE_ACCOUNT env var");
+            }
+            const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
+            initializeApp({
+                credential: cert(serviceAccount)
+            });
+        }
+    } catch (e) {
+        console.error("Firebase Admin Init Error:", e);
+        // We log it and return 500, but this won't crash the *Build* process hopefully
+        return res.status(500).json({ error: "Server Configuration Error: " + e.message });
+    }
 
+    try {
+        // 2. Logic to determine Topic by User Time (KST)
         const now = new Date();
-        // Convert to KST (UTC+9)
-        const kstTime = new Date(now.getTime() + (9 * 60 * 60 * 1000));
-        const currentHour = kstTime.getUTCHours();
-        // Wait, getUTCHours of modified date is mostly correct for simple math
-        // Better:
-        // const kstDate = new Date().toLocaleString("en-US", {timeZone: "Asia/Seoul"});
-        // const hour = new Date(kstDate).getHours();
-
-        // Let's stick to simple offset for robustness in Node environment
-        // UTC hour:
         const utcHour = now.getUTCHours();
-        // Target KST Hour: (utcHour + 9) % 24
+
+        // KST is UTC+9.
+        // If it is 23:00 UTC (previous day), it is 08:00 KST (today).
+        // (23 + 9) % 24 = 32 % 24 = 8.
         let targetHour = (utcHour + 9) % 24;
 
-        // Format to '08', '20' etc.
         const hourStr = targetHour.toString().padStart(2, '0');
         const topic = `alarm_${hourStr}`;
 
@@ -53,10 +53,9 @@ export default async function handler(req, res) {
         const response = await getMessaging().send(message);
         console.log(`Sent to ${topic}:`, response);
         return res.status(200).json({ success: true, topic, response });
+
     } catch (error) {
-        // If topic has no subscribers, FCM might throw error or return failure.
-        // We catch it and just say OK/Skip.
-        console.log('Error or No subscribers for this hour:', error.code);
+        console.log('Error sending message (or no subscribers):', error.message);
         return res.status(200).json({ status: 'No messages sent or error', details: error.message });
     }
 }
