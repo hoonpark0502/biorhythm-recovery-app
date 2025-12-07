@@ -1,7 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useStorage } from '../context/StorageContext';
 
-// Simple routine generator
 const ROUTINES = [
     "Drink a glass of warm water.",
     "Stretch your arms for 10 seconds.",
@@ -12,20 +11,21 @@ const ROUTINES = [
 ];
 
 const Home = ({ onNavigate }) => {
-    const { profile, todayRoutine, setRoutine, completeRoutine, getTodayLog, logs } = useStorage();
+    const { profile, todayRoutine, setRoutine, completeRoutine, getTodayLog, logs, updateProfile } = useStorage();
     const [localRoutine, setLocalRoutine] = useState(null);
     const [logDone, setLogDone] = useState(false);
+    const [showSettings, setShowSettings] = useState(false);
+    const [isUpdating, setIsUpdating] = useState(false);
 
     useEffect(() => {
-        // Check if check-in is done
         const log = getTodayLog();
         if (log && log.timestamp) setLogDone(true);
 
-        // Initialize Routine if none
         if (!todayRoutine) {
             const random = ROUTINES[Math.floor(Math.random() * ROUTINES.length)];
-            setRoutine({ text: random, completed: false });
-            setLocalRoutine({ text: random, completed: false });
+            const newRoutine = { text: random, completed: false, id: Date.now() };
+            setRoutine(newRoutine);
+            setLocalRoutine(newRoutine);
         } else {
             setLocalRoutine(todayRoutine);
         }
@@ -33,11 +33,38 @@ const Home = ({ onNavigate }) => {
 
     const handleRoutineCheck = () => {
         completeRoutine();
-        // Animation/Feedback is handled by re-render showing unchecked -> checked state
-        // We can add a confetti effect later
     };
 
-    // Helper for Weekly Rhythm (Last 7 days simplified)
+    const handleTimeChange = async (newTime) => {
+        if (!confirm(`Set daily alarm to ${newTime}:00?`)) return;
+
+        setIsUpdating(true);
+        try {
+            // Unsubscribe old topic logic is minimal here (we overwrite preference)
+            // Ideally backend handles unsubscribing from old, but for MVP we just subscribe to new.
+            // Topic: alarm_{time}
+            // Logic: Pass 'time' to auto-subscribe to alarm_{time}
+
+            if (profile.fcmToken) {
+                await fetch('/api/subscribe', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: profile.fcmToken, time: newTime })
+                });
+
+                updateProfile({
+                    notificationTime: { ...profile.notificationTime, morning: `${newTime}:00` }
+                });
+                alert(`Alarm set to ${newTime}:00!`);
+            } else {
+                alert("Please enable notifications in settings or reinstall/re-onboard.");
+            }
+        } catch (e) {
+            alert("Failed to update alarm: " + e.message);
+        }
+        setIsUpdating(false);
+    };
+
     const getWeeklyData = () => {
         const data = [];
         const today = new Date();
@@ -62,11 +89,51 @@ const Home = ({ onNavigate }) => {
             <header style={{ marginBottom: '24px', marginTop: '16px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                 <div>
                     <h1 style={{ fontSize: '1.75rem', color: 'var(--color-primary-dark)' }}>Hi, {profile.name || 'Friend'}</h1>
-                    <p style={{ color: 'var(--color-text-sub)' }}>How are you feeling today?</p>
+                    <p style={{ color: 'var(--color-text-sub)' }}>{new Date().toLocaleDateString()}</p>
                 </div>
-                {/* Settings Icon Placeholder */}
-                <div style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#eee' }}></div>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    {/* Token Badge */}
+                    <div style={{ background: '#FFF4E6', padding: '6px 10px', borderRadius: '20px', color: '#D97706', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                        <span>🪙</span> {profile.tokens || 0}
+                    </div>
+                    {/* Settings Button */}
+                    <button
+                        onClick={() => setShowSettings(!showSettings)}
+                        style={{ border: 'none', background: 'white', fontSize: '1.2rem', padding: '6px', borderRadius: '50%', boxShadow: 'var(--shadow-card)', cursor: 'pointer' }}>
+                        ⚙️
+                    </button>
+                </div>
             </header>
+
+            {/* Settings Panel */}
+            {showSettings && (
+                <div className="fade-in" style={{ background: 'white', padding: '20px', borderRadius: '16px', marginBottom: '24px', boxShadow: 'var(--shadow-card)' }}>
+                    <h3 style={{ marginBottom: '16px', fontSize: '1.1rem' }}>Daily Alarm</h3>
+                    <div style={{ marginBottom: '8px' }}>
+                        <span style={{ fontSize: '0.9rem', color: '#666' }}>Current: {profile.notificationTime?.morning || "None"}</span>
+                    </div>
+                    <div style={{ display: 'flex', gap: '8px', overflowX: 'auto', paddingBottom: '8px' }}>
+                        {['06', '07', '08', '09', '10', '20', '21', '22'].map(hour => (
+                            <button
+                                key={hour}
+                                disabled={isUpdating}
+                                onClick={() => handleTimeChange(hour)}
+                                style={{
+                                    padding: '8px 12px',
+                                    borderRadius: '12px',
+                                    border: '1px solid var(--color-primary)',
+                                    background: profile.notificationTime?.morning?.startsWith(hour) ? 'var(--color-primary)' : 'transparent',
+                                    color: profile.notificationTime?.morning?.startsWith(hour) ? 'white' : 'var(--color-primary)',
+                                    cursor: 'pointer',
+                                    flexShrink: 0
+                                }}>
+                                {hour}:00
+                            </button>
+                        ))}
+                    </div>
+                </div>
+            )}
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
@@ -81,7 +148,10 @@ const Home = ({ onNavigate }) => {
                         textAlign: 'left',
                         color: 'white',
                         position: 'relative',
-                        overflow: 'hidden'
+                        overflow: 'hidden',
+                        border: 'none',
+                        cursor: 'pointer',
+                        width: '100%'
                     }}>
                     <div style={{ position: 'relative', zIndex: 1 }}>
                         <h3 style={{ fontSize: '1.3rem', marginBottom: '4px' }}>I'm struggling</h3>
@@ -103,7 +173,9 @@ const Home = ({ onNavigate }) => {
                         color: logDone ? '#A0AEC0' : 'var(--color-text-main)',
                         display: 'flex',
                         justifyContent: 'space-between',
-                        alignItems: 'center'
+                        alignItems: 'center',
+                        cursor: logDone ? 'default' : 'pointer',
+                        width: '100%'
                     }}>
                     <div>
                         <h3 style={{ fontSize: '1.2rem', marginBottom: '4px' }}>{logDone ? "Check-in Complete" : "Daily Check-in"}</h3>
@@ -119,12 +191,14 @@ const Home = ({ onNavigate }) => {
                         <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
                             <button
                                 onClick={!localRoutine.completed ? handleRoutineCheck : undefined}
+                                disabled={localRoutine.completed}
                                 style={{
                                     width: '32px', height: '32px', borderRadius: '50%',
                                     border: '2px solid var(--color-primary)',
                                     background: localRoutine.completed ? 'var(--color-primary)' : 'transparent',
                                     display: 'flex', justifyContent: 'center', alignItems: 'center',
-                                    color: 'white'
+                                    color: 'white',
+                                    cursor: localRoutine.completed ? 'default' : 'pointer'
                                 }}
                             >
                                 {localRoutine.completed && "✓"}
@@ -133,6 +207,7 @@ const Home = ({ onNavigate }) => {
                                 {localRoutine.text}
                             </div>
                         </div>
+                        {localRoutine.completed && <p style={{ marginTop: '12px', fontSize: '0.8rem', color: '#D97706' }}>✨ Completed! (Progress toward token: {profile.dailyRoutineCount % 5}/5)</p>}
                     </div>
                 )}
 
@@ -142,12 +217,10 @@ const Home = ({ onNavigate }) => {
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', height: '100px' }}>
                         {weeklyData.map((day, i) => (
                             <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '8px' }}>
-                                {/* Mood Dot */}
                                 {day.mood ? (
                                     <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: `var(--mood-${day.mood})` }}></div>
                                 ) : <div style={{ width: '8px', height: '8px' }}></div>}
 
-                                {/* Sleep Bar */}
                                 <div style={{
                                     width: '12px',
                                     height: `${Math.min(day.sleep * 8, 60)}px`,
@@ -157,7 +230,6 @@ const Home = ({ onNavigate }) => {
                                 }}>
                                     {day.sleep > 0 && <div style={{ position: 'absolute', bottom: 0, width: '100%', height: '100%', background: 'var(--color-primary)', opacity: 0.5, borderRadius: '4px' }}></div>}
                                 </div>
-
                                 <span style={{ fontSize: '0.75rem', color: '#aaa' }}>{day.day}</span>
                             </div>
                         ))}

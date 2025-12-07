@@ -1,39 +1,67 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 
 // --- Sub-components for Relief Steps ---
 
 const BreathingStep = ({ onNext }) => {
-    const [phase, setPhase] = useState('Inhale'); // Inhale, Hold, Exhale
-    const [timer, setTimer] = useState(4);
+    const [phase, setPhase] = useState('Ready');
+    const [isBreathing, setIsBreathing] = useState(false);
+    const audioRef = useRef(null);
 
+    const handleStart = () => {
+        setIsBreathing(true);
+        if (audioRef.current) {
+            audioRef.current.volume = 0.5;
+            audioRef.current.play().catch(e => console.log("Audio blocked", e));
+        }
+    };
+
+    const handleStop = () => {
+        setIsBreathing(false);
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
+        }
+    };
+
+    // Cleanup on unmount
     useEffect(() => {
-        let interval;
-        // Simple timer logic for demo purposes (4-4-6)
-        // In a real app, use more robust animation timing sync
-        const cycle = async () => {
-            /* 
-              This is just a visualizer state, the CSS animation handles the smooth circle.
-              We just need text updates.
-            */
+        return () => {
+            if (audioRef.current) audioRef.current.pause();
         };
-        // For MVP, we'll just let the CSS animation loop and user follows it.
-        // We provide a manual "I feel better / Next" button.
     }, []);
 
     return (
         <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            <h2 style={{ marginBottom: '40px' }}>Breathe with me.</h2>
+            <h2 style={{ marginBottom: '20px' }}>Deep Breathing</h2>
 
-            {/* Breathing Circle */}
-            <div className="breathing-circle"></div>
+            <audio ref={audioRef} loop src="https://actions.google.com/sounds/v1/nature/rain_heavy_loud.ogg" />
 
-            <p style={{ marginTop: '40px', color: '#666' }}>
-                Inhale (4s) ... Hold (4s) ... Exhale (6s)
-            </p>
-
-            <button onClick={onNext} className="btn-primary" style={{ marginTop: 'auto', width: '100%' }}>
-                I feel calmer
-            </button>
+            {!isBreathing ? (
+                <div className="fade-in">
+                    <p style={{ marginBottom: '32px', color: '#666' }}>
+                        Calm rain sounds will play.<br />
+                        Follow the circle.
+                    </p>
+                    <button onClick={handleStart} className="btn-primary" style={{ padding: '16px 48px' }}>
+                        Start
+                    </button>
+                </div>
+            ) : (
+                <div className="fade-in">
+                    <div className="breathing-circle"></div>
+                    <p style={{ marginTop: '40px', color: '#666' }}>
+                        Inhale (4s) ... Hold (4s) ... Exhale (6s)
+                    </p>
+                    <button onClick={handleStop} style={{ marginTop: '32px', background: 'transparent', border: '2px solid #eee', padding: '8px 24px', borderRadius: '20px', cursor: 'pointer' }}>
+                        Stop
+                    </button>
+                    <div style={{ marginTop: '20px' }}>
+                        <button onClick={onNext} className="btn-primary" style={{ width: '100%' }}>
+                            I feel calmer
+                        </button>
+                    </div>
+                </div>
+            )}
 
             <style>{`
         .breathing-circle {
@@ -43,13 +71,12 @@ const BreathingStep = ({ onNext }) => {
           border-radius: 50%;
           opacity: 0.8;
           animation: breath 14s infinite ease-in-out; 
-          /* 4s in + 4s hold + 6s out = 14s cycle roughly */
         }
         @keyframes breath {
-          0% { transform: scale(0.4); opacity: 0.4; } /* Start Inhale */
-          28% { transform: scale(1); opacity: 1; }   /* End Inhale (4s/14s ~ 28%) */
-          57% { transform: scale(1); opacity: 1; }   /* End Hold (8s/14s ~ 57%) */
-          100% { transform: scale(0.4); opacity: 0.4; } /* End Exhale */
+          0% { transform: scale(0.4); opacity: 0.4; } 
+          28% { transform: scale(1); opacity: 1; }   
+          57% { transform: scale(1); opacity: 1; }   
+          100% { transform: scale(0.4); opacity: 0.4; } 
         }
       `}</style>
         </div>
@@ -95,7 +122,7 @@ const TrashStep = ({ onFinish }) => {
         setIsThrowing(true);
         setTimeout(() => {
             onFinish();
-        }, 1500); // Wait for animation
+        }, 1500);
     };
 
     if (isThrowing) {
@@ -144,7 +171,7 @@ const TrashStep = ({ onFinish }) => {
 // --- Main Flow Component ---
 
 const ReliefFlow = ({ onExit }) => {
-    const [step, setStep] = useState(0); // 0: Breath, 1: Ground, 2: Trash
+    const [step, setStep] = useState(0);
 
     const handleNext = () => setStep(p => p + 1);
     const handleFinish = () => onExit();
@@ -152,7 +179,7 @@ const ReliefFlow = ({ onExit }) => {
     return (
         <div className="page-container fade-in" style={{ padding: '24px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
             <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-                <button onClick={onExit} style={{ background: 'none', fontSize: '1.5rem', marginRight: '16px' }}>✕</button>
+                <button onClick={onExit} style={{ background: 'none', fontSize: '1.5rem', marginRight: '16px', border: 'none', cursor: 'pointer' }}>✕</button>
                 <div style={{ flex: 1, height: '6px', background: '#eee', borderRadius: '3px', overflow: 'hidden' }}>
                     <div style={{
                         width: `${((step + 1) / 3) * 100}%`,
@@ -179,6 +206,8 @@ const ReliefFlow = ({ onExit }) => {
               font-weight: 600;
               box-shadow: var(--shadow-float);
               transition: transform 0.1s;
+              border: none;
+              cursor: pointer;
           }
           .btn-primary:active {
               transform: scale(0.98);

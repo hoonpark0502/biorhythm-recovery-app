@@ -1,21 +1,29 @@
 import React, { useState } from 'react';
 import { useStorage } from '../context/StorageContext';
-import { requestNotificationPermission } from '../firebase'; // Import Firebase logic
+import { requestNotificationPermission } from '../firebase';
 
 const Onboarding = ({ onFinish }) => {
     const { completeOnboarding, updateProfile } = useStorage();
-    const [step, setStep] = useState(0); // 0: Welcome, 1: Name, 2: Notification
+    const [step, setStep] = useState(0);
     const [name, setName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     const handleNext = async () => {
         if (step === 2) {
-            // Final Step: Request Permission
             setIsLoading(true);
             try {
+                // Request Permission
                 const token = await requestNotificationPermission();
                 if (token) {
                     updateProfile({ fcmToken: token });
+
+                    // Subscribe to default '08:00' topic (using generic 'alarm_08' for now)
+                    await fetch('/api/subscribe', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify({ token, time: '08' })
+                    });
+
                     alert("Notifications enabled! You'll receive a test message soon.");
                 }
             } catch (e) {
@@ -30,7 +38,6 @@ const Onboarding = ({ onFinish }) => {
 
     return (
         <div className="onboarding-container fade-in" style={{ padding: '40px 24px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-
             {step === 0 && (
                 <div style={{ textAlign: 'center' }}>
                     <h1 style={{ color: 'var(--color-primary-dark)', marginBottom: '16px', fontSize: '2rem' }}>Deep Breath.</h1>
@@ -96,7 +103,6 @@ const Onboarding = ({ onFinish }) => {
                     {isLoading ? "Setting up..." : (step === 2 ? "Start Journey" : "Next")}
                 </button>
             </div>
-
         </div>
     );
 };
