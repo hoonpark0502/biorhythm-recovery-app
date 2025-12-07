@@ -1,58 +1,60 @@
 import React, { useState, useEffect, useRef } from 'react';
+
 // --- Sub-components for Relief Steps ---
 
 const BreathingStep = ({ onNext }) => {
     const [phase, setPhase] = useState('Ready');
     const [isBreathing, setIsBreathing] = useState(false);
-    const [audioObj, setAudioObj] = useState(null);
+    const audioRef = useRef(null);
 
     const handleStart = () => {
-        // iOS Fix: Create Audio object directly on click
-        const audio = new Audio("https://assets.mixkit.co/sfx/preview/mixkit-light-rain-loop-2393.mp3");
-        audio.loop = true;
-        audio.volume = 0.5;
+        if (audioRef.current) {
+            audioRef.current.volume = 0.5;
+            // iOS Fix: Call play() directly on the ref
+            const playPromise = audioRef.current.play();
 
-        // Explicitly load first (helps with "Operation not supported")
-        audio.load();
-
-        const playPromise = audio.play();
-
-        if (playPromise !== undefined) {
-            playPromise
-                .then(() => {
-                    // Success
-                    setAudioObj(audio); // Save to state to stop later
-                    setIsBreathing(true);
-                })
-                .catch(e => {
-                    console.error("Audio blocked", e);
-                    alert(`Sound blocked: ${e.message}\n(Try turning off Silent Mode switch on valid MP3)`);
-                });
+            if (playPromise !== undefined) {
+                playPromise
+                    .then(() => {
+                        // Success
+                        setIsBreathing(true);
+                    })
+                    .catch(e => {
+                        console.error("Audio blocked", e);
+                        alert(`Audio Support Error: ${e.message}\n(Try turning off Silent Mode or check volume)`);
+                    });
+            }
         }
     };
 
     const handleStop = () => {
         setIsBreathing(false);
-        if (audioObj) {
-            audioObj.pause();
-            audioObj.currentTime = 0;
-            setAudioObj(null); // Clear state
+        if (audioRef.current) {
+            audioRef.current.pause();
+            audioRef.current.currentTime = 0;
         }
     };
 
     // Cleanup on unmount
     useEffect(() => {
         return () => {
-            if (audioObj) {
-                audioObj.pause();
-                setAudioObj(null);
-            }
+            if (audioRef.current) audioRef.current.pause();
         };
-    }, [audioObj]);
+    }, []);
 
     return (
         <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
             <h2 style={{ marginBottom: '20px' }}>Deep Breathing</h2>
+
+            {/* Reliable MP3 Source from Pixabay (Rain) */}
+            <audio
+                ref={audioRef}
+                loop
+                crossOrigin="anonymous"
+                preload="auto"
+                playsInline
+                src="https://cdn.pixabay.com/audio/2022/03/15/audio_c8c8a73467.mp3"
+            />
 
             {!isBreathing ? (
                 <div className="fade-in">
@@ -234,6 +236,7 @@ const ReliefFlow = ({ onExit }) => {
           .btn-primary:disabled {
               background: #ccc;
               box-shadow: none;
+              cursor: not-allowed;
           }
       `}</style>
         </div>
