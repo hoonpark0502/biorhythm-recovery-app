@@ -19,24 +19,20 @@ const Garden = ({ onBack }) => {
     const handleBuy = (type) => {
         const item = ORNAMENTS[type];
         if (confirm(`Buy ${item.name} for ${item.cost} tokens?`)) {
-            // Generate Random Position on Tree Surface (Local Coordinates)
-            // Tree is roughly a cone from Y=0 to Y=3, Radius 1.2 to 0
-            const height = Math.random() * 3.0; // 0 to 3.0
-            const maxRadius = 1.2 * (1 - height / 3.0);
-            const radius = maxRadius * 0.9; // Slightly inside/surface
-            const angle = Math.random() * Math.PI * 2;
+            // Generate Random Position on 2D Triangle (Billboard)
+            // Tree is roughly Y=0.5 to Y=3.5.
+            const y = 0.5 + Math.random() * 3.0;
 
-            const x = Math.cos(angle) * radius;
-            const z = Math.sin(angle) * radius;
-            const y = height;
+            // Max Width at this Y
+            // At Y=0.5, Width=2.0 (approx). At Y=3.5, Width=0.
+            const maxWidth = 1.0 * (1 - (y - 0.5) / 3.0);
+            const x = (Math.random() * 2 - 1) * maxWidth; // -maxWidth to +maxWidth
 
-            // Add offset for the stacked cones visuals if needed, but simple cone approx is fine for decorations
-            // We might shift Y up slightly so ornaments aren't in the trunk. The tree group starts at Y=-1.
-            // The foliage starts at roughly Y=0 relative to group.
+            const z = 0.1; // Slightly in front of the plane
 
             const success = buyOrnament(type, item.cost, [x, y, z]);
             if (success) {
-                // optional feedback?
+                // optional feedback
             }
         }
     };

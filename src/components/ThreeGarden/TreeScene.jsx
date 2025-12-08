@@ -22,7 +22,17 @@ const TreeScene = () => {
                 </Suspense>
 
                 {/* CONTROLS */}
-                <OrbitControls enablePan={false} minPolarAngle={Math.PI / 4} maxPolarAngle={Math.PI / 1.5} maxDistance={10} minDistance={3} autoRotate autoRotateSpeed={0.5} />
+                {/* CONTROLS - Restricted Azimuth (Front View Only) */}
+                <OrbitControls
+                    enablePan={false}
+                    minPolarAngle={Math.PI / 3}
+                    maxPolarAngle={Math.PI / 1.8}
+                    minAzimuthAngle={-Math.PI / 4} // -45 deg
+                    maxAzimuthAngle={Math.PI / 4}  // +45 deg
+                    maxDistance={8}
+                    minDistance={4}
+                    autoRotate={false} // Disable auto rotate to keep front view
+                />
             </Canvas>
         </div>
     );

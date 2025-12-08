@@ -238,18 +238,26 @@ export function StorageProvider({ children }) {
                 // If already migrated (has position), skip
                 if (item.position) return item;
 
-                // Random Position on a Cone (approximate tree shape)
-                // Height 0 to 2, Radius decreasing as height increases
-                const height = Math.random() * 2; // 0 to 2
-                const radius = 1.0 - (height * 0.4);
-                const angle = Math.random() * Math.PI * 2;
-                const x = Math.cos(angle) * radius;
-                const z = Math.sin(angle) * radius;
-                const y = height - 1.0; // Shift down
+                // Random Position on 2D Triangle (Billboard)
+                // Tree is roughly Y=0 to Y=3.5, X width varies.
+                // Approximating a triangle: Base width ~2.5, Height ~3.5
+                // Formula for random point in triangle:
+                // P = (1 - sqrt(r1)) * A + (sqrt(r1) * (1 - r2)) * B + (sqrt(r1) * r2) * C
+
+                // Let's simplified approach:
+                // Height Y: 0.5 to 3.5
+                const y = 0.5 + Math.random() * 3.0;
+
+                // Max Width at this Y (Linear taper)
+                // At Y=0.5, Width=2.0. At Y=3.5, Width=0.
+                const maxWidth = 1.2 * (1 - (y - 0.5) / 3.0);
+                const x = (Math.random() * 2 - 1) * maxWidth; // -maxWidth to +maxWidth
+
+                const z = 0.1; // Slightly in front of the plane
 
                 return {
                     id: item.id,
-                    type: 'red_ball', // Default replacement
+                    type: 'red_ball',
                     position: [x, y, z],
                     plantedAt: item.plantedAt
                 };
