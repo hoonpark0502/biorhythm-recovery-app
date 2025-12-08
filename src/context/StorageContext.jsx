@@ -144,7 +144,7 @@ export function StorageProvider({ children }) {
 
     const setRoutine = (routineData) => {
         setTodayRoutine(routineData);
-    }
+    };
 
     const completeRoutine = () => {
         if (!todayRoutine) return;
@@ -200,9 +200,7 @@ export function StorageProvider({ children }) {
                 bestStreak
             };
         });
-
-        // 4. (Removed) Plants don't grow anymore. Ornaments remain as is.
-    }
+    };
 
     const refreshRoutine = (isPaid) => {
         const NOW = Date.now();
@@ -228,62 +226,58 @@ export function StorageProvider({ children }) {
             updateProfile({ lastRefreshTime: NOW });
             return true;
         }
-    }
+    };
 
-    // Migration: Convert old 2D plants to 3D Ornaments
+    // Migration: Convert old Garden items to Stars in the Sky
     useEffect(() => {
-        if (garden.some(item => item.stage !== undefined)) {
-            console.log("Migrating old garden to 3D ornaments...");
+        if (garden.some(item => !item.isStar)) {
+            console.log("Migrating items to Stars...");
             const newGarden = garden.map(item => {
-                // If already migrated (has position), skip
-                if (item.position) return item;
+                if (item.isStar) return item;
 
-                // Random Position on 2D Triangle (Billboard)
-                // Tree is roughly Y=0 to Y=3.5, X width varies.
-                // Approximating a triangle: Base width ~2.5, Height ~3.5
-                // Formula for random point in triangle:
-                // P = (1 - sqrt(r1)) * A + (sqrt(r1) * (1 - r2)) * B + (sqrt(r1) * r2) * C
-
-                // Let's simplified approach:
-                // Height Y: 0.5 to 3.5
-                const y = 0.5 + Math.random() * 3.0;
-
-                // Max Width at this Y (Linear taper)
-                // At Y=0.5, Width=2.0. At Y=3.5, Width=0.
-                const maxWidth = 1.2 * (1 - (y - 0.5) / 3.0);
-                const x = (Math.random() * 2 - 1) * maxWidth; // -maxWidth to +maxWidth
-
-                const z = 0.1; // Slightly in front of the plane
+                // Random Sky Position
+                // Y: 5 to 15 (High up)
+                // X: -20 to 20 (Wide spread)
+                // Z: -10 to -30 (Deep background)
+                const x = (Math.random() * 40) - 20;
+                const y = 5 + Math.random() * 10;
+                const z = -10 - (Math.random() * 20);
 
                 return {
-                    id: item.id,
-                    type: 'red_ball',
-                    position: [x, y, z],
-                    plantedAt: item.plantedAt
+                    ...item,
+                    isStar: true,
+                    type: 'star',
+                    originType: item.type || 'unknown',
+                    position: [x, y, z]
                 };
             });
             setGarden(newGarden);
         }
     }, [garden]);
 
-    const buyOrnament = (type, cost, position) => {
+    const throwObject = (type, cost) => {
         if (profile.tokens < cost) {
             alert(`Not enough tokens! Need ${cost} 🪙`);
             return false;
         }
-        // Deduct cost
         updateProfile({ tokens: parseFloat((profile.tokens - cost).toFixed(1)) });
 
-        // Add Ornament
-        const newOrnament = {
+        // Create Star Position immediately (Sublimation)
+        const x = (Math.random() * 40) - 20;
+        const y = 5 + Math.random() * 10;
+        const z = -10 - (Math.random() * 20);
+
+        const newStar = {
             id: Date.now(),
-            type, // 'red_ball', 'gold_star', 'lights'
-            position, // [x, y, z]
+            type: 'star',
+            originType: type, // 'stone', 'pebble', 'branch'
+            position: [x, y, z],
+            isStar: true,
             plantedAt: new Date().toISOString()
         };
-        setGarden(prev => [...prev, newOrnament]);
+        setGarden(prev => [...prev, newStar]);
         return true;
-    }
+    };
 
     return (
         <StorageContext.Provider value={{
@@ -298,7 +292,8 @@ export function StorageProvider({ children }) {
             setRoutine,
             completeRoutine,
             refreshRoutine,
-            buyOrnament
+            throwObject,
+            buyOrnament: throwObject // Backward compatibility
         }}>
             {children}
         </StorageContext.Provider>

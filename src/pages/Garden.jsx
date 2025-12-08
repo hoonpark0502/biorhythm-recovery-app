@@ -1,38 +1,27 @@
 import React, { useState } from 'react';
 import { useStorage } from '../context/StorageContext';
-import { useAuth } from '../context/AuthContext';
-import VisitGarden from '../components/VisitGarden';
-import TreeScene from '../components/ThreeGarden/TreeScene';
+import RiverScene from '../components/ThreeGarden/RiverScene';
+import StarSystem from '../components/ThreeGarden/StarSystem';
 
-const ORNAMENTS = {
-    red_ball: { name: 'Red Ball', cost: 0.5, icon: '🔴' },
-    blue_ball: { name: 'Blue Ball', cost: 0.5, icon: '🔵' },
-    gold_star: { name: 'Gold Star', cost: 1.0, icon: '⭐' },
-    lights: { name: 'Fairy Lights', cost: 2.0, icon: '💡' }
+const OBJECTS = {
+    pebble: { name: 'Small Pebble', cost: 0.2, icon: '🪨', desc: 'A nice little thought' },
+    stone: { name: 'Heavy Stone', cost: 0.5, icon: '🌑', desc: 'A heavy burden' },
+    branch: { name: 'Old Branch', cost: 1.0, icon: '🪵', desc: 'Letting go of the past' }
 };
 
 const Garden = ({ onBack }) => {
-    const { profile, garden, buyOrnament } = useStorage();
-    const { user } = useAuth();
+    const { profile, garden, throwObject } = useStorage();
     const [isShopOpen, setIsShopOpen] = useState(false);
 
-    const handleBuy = (type) => {
-        const item = ORNAMENTS[type];
-        if (confirm(`Buy ${item.name} for ${item.cost} tokens?`)) {
-            // Generate Random Position on 2D Triangle (Billboard)
-            // Tree is roughly Y=0.5 to Y=3.5.
-            const y = 0.5 + Math.random() * 3.0;
+    // Day/Night Cycle (Manual Toggle for UX)
+    const [isNight, setIsNight] = useState(true);
 
-            // Max Width at this Y
-            // At Y=0.5, Width=2.0 (approx). At Y=3.5, Width=0.
-            const maxWidth = 1.0 * (1 - (y - 0.5) / 3.0);
-            const x = (Math.random() * 2 - 1) * maxWidth; // -maxWidth to +maxWidth
-
-            const z = 0.1; // Slightly in front of the plane
-
-            const success = buyOrnament(type, item.cost, [x, y, z]);
+    const handleThrow = (type) => {
+        const item = OBJECTS[type];
+        if (confirm(`Throw ${item.name} into the river? (${item.cost} tokens)`)) {
+            const success = throwObject(type, item.cost);
             if (success) {
-                // optional feedback
+                // Future: Trigger animation here
             }
         }
     };
@@ -40,49 +29,48 @@ const Garden = ({ onBack }) => {
     return (
         <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: '#0F172A' }}>
 
-            {/* 3D SCENE BACKGROUND */}
-            <TreeScene />
+            {/* 3D RIVER SCENE */}
+            <RiverScene isNight={isNight}>
+                <StarSystem items={garden} isNight={isNight} />
+            </RiverScene>
 
-            {/* HEADER UI (Absolute) */}
+            {/* HEADER UI */}
             <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', padding: '20px', zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
                 <div style={{ pointerEvents: 'auto' }}>
                     <button onClick={onBack} style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
                 </div>
 
-                <div style={{ pointerEvents: 'auto', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', padding: '10px 20px', borderRadius: '20px', color: 'white', textAlign: 'right', border: '1px solid rgba(255,255,255,0.2)' }}>
-                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{profile.tokens} 🪙</div>
-                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{garden.length} Ornaments</div>
+                <div style={{ pointerEvents: 'auto', display: 'flex', gap: '10px' }}>
+                    {/* Time Toggle */}
+                    <button onClick={() => setIsNight(!isNight)} style={{ background: 'rgba(0,0,0,0.3)', backdropFilter: 'blur(10px)', border: '1px solid rgba(255,255,255,0.2)', borderRadius: '20px', padding: '5px 15px', color: 'white', cursor: 'pointer' }}>
+                        {isNight ? '🌙 Night' : '☀️ Day'}
+                    </button>
+
+                    <div style={{ background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', padding: '10px 20px', borderRadius: '20px', color: 'white', textAlign: 'right', border: '1px solid rgba(255,255,255,0.2)' }}>
+                        <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{profile.tokens} 🪙</div>
+                        <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{garden.length} Stars</div>
+                    </div>
                 </div>
             </div>
 
-            {/* BOTTOM UI (Absolute) */}
+            {/* BOTTOM UI (Object Shop) */}
             <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', zIndex: 10, pointerEvents: 'none', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-                {/* Visit Logic (Collapsible?) */}
-                {!isShopOpen && (
-                    <div style={{ pointerEvents: 'auto', marginBottom: '10px' }}>
-                        {/* We can integrate VisitGarden in a modal or separate drawer. For now, keep it simple. */}
-                        <button onClick={() => alert("Social feature coming to 3D soon!")} style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(13, 148, 136, 0.8)', border: 'none', color: 'white', fontWeight: 'bold', backdropFilter: 'blur(5px)', cursor: 'pointer' }}>
-                            🌏 Visit Neighbors (Social)
-                        </button>
-                    </div>
-                )}
-
-                {/* SHOP TOGGLE / PANEL */}
-                <div style={{ pointerEvents: 'auto', background: 'rgba(255, 255, 255, 0.95)', borderRadius: '20px', padding: '20px', boxShadow: '0 -5px 20px rgba(0,0,0,0.3)', transition: 'transform 0.3s ease' }}>
+                {/* SHOP PANEL */}
+                <div style={{ pointerEvents: 'auto', background: 'rgba(255, 255, 255, 0.95)', borderRadius: '20px', padding: '20px', boxShadow: '0 -5px 20px rgba(0,0,0,0.3)' }}>
                     <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
-                        <h3 style={{ margin: 0, color: '#333' }}>🎄 Ornament Shop</h3>
+                        <h3 style={{ margin: 0, color: '#333' }}>🌊 River of Thoughts</h3>
                         <button onClick={() => setIsShopOpen(!isShopOpen)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}>
                             {isShopOpen ? '▼' : '▲'}
                         </button>
                     </div>
 
                     {isShopOpen && (
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', animation: 'fadeIn 0.3s' }}>
-                            {Object.entries(ORNAMENTS).map(([key, item]) => (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', animation: 'fadeIn 0.3s' }}>
+                            {Object.entries(OBJECTS).map(([key, item]) => (
                                 <button
                                     key={key}
-                                    onClick={() => handleBuy(key)}
+                                    onClick={() => handleThrow(key)}
                                     disabled={profile.tokens < item.cost}
                                     style={{
                                         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -93,16 +81,17 @@ const Garden = ({ onBack }) => {
                                         cursor: profile.tokens >= item.cost ? 'pointer' : 'not-allowed'
                                     }}
                                 >
-                                    <span style={{ fontSize: '1.5rem', marginBottom: '4px' }}>{item.icon}</span>
-                                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{item.name}</span>
-                                    <span style={{ fontSize: '0.8rem', color: '#666' }}>{item.cost} 🪙</span>
+                                    <span style={{ fontSize: '2rem', marginBottom: '4px' }}>{item.icon}</span>
+                                    <div style={{ fontSize: '0.9rem', fontWeight: '600', color: '#333' }}>{item.name}</div>
+                                    <div style={{ fontSize: '0.7rem', color: '#888' }}>{item.desc}</div>
+                                    <div style={{ fontSize: '0.8rem', color: '#0066cc', marginTop: '4px' }}>{item.cost} 🪙</div>
                                 </button>
                             ))}
                         </div>
                     )}
                     {!isShopOpen && (
                         <div style={{ textAlign: 'center', fontSize: '0.9rem', color: '#666' }} onClick={() => setIsShopOpen(true)}>
-                            Tap to Open Shop
+                            Throw something into the river...
                         </div>
                     )}
                 </div>
