@@ -201,11 +201,7 @@ export function StorageProvider({ children }) {
             };
         });
 
-        // 4. Grow Plants! (All existing plants grow slightly)
-        setGarden(prev => prev.map(plant => {
-            if (plant.stage < 3) return { ...plant, stage: plant.stage + 1 }; // Grow next stage
-            return plant;
-        }));
+        // 4. (Removed) Plants don't grow anymore. Ornaments remain as is.
     }
 
     const refreshRoutine = (isPaid) => {
@@ -234,7 +230,35 @@ export function StorageProvider({ children }) {
         }
     }
 
-    const buyPlant = (type, cost) => {
+    // Migration: Convert old 2D plants to 3D Ornaments
+    useEffect(() => {
+        if (garden.some(item => item.stage !== undefined)) {
+            console.log("Migrating old garden to 3D ornaments...");
+            const newGarden = garden.map(item => {
+                // If already migrated (has position), skip
+                if (item.position) return item;
+
+                // Random Position on a Cone (approximate tree shape)
+                // Height 0 to 2, Radius decreasing as height increases
+                const height = Math.random() * 2; // 0 to 2
+                const radius = 1.0 - (height * 0.4);
+                const angle = Math.random() * Math.PI * 2;
+                const x = Math.cos(angle) * radius;
+                const z = Math.sin(angle) * radius;
+                const y = height - 1.0; // Shift down
+
+                return {
+                    id: item.id,
+                    type: 'red_ball', // Default replacement
+                    position: [x, y, z],
+                    plantedAt: item.plantedAt
+                };
+            });
+            setGarden(newGarden);
+        }
+    }, [garden]);
+
+    const buyOrnament = (type, cost, position) => {
         if (profile.tokens < cost) {
             alert(`Not enough tokens! Need ${cost} 🪙`);
             return false;
@@ -242,14 +266,14 @@ export function StorageProvider({ children }) {
         // Deduct cost
         updateProfile({ tokens: parseFloat((profile.tokens - cost).toFixed(1)) });
 
-        // Add Plant
-        const newPlant = {
+        // Add Ornament
+        const newOrnament = {
             id: Date.now(),
-            type, // 'sunflower', 'rose', 'tree'
-            stage: 0, // 0=Seed, 1=Sprout, 2=Bloom, 3=Mature
+            type, // 'red_ball', 'gold_star', 'lights'
+            position, // [x, y, z]
             plantedAt: new Date().toISOString()
         };
-        setGarden(prev => [...prev, newPlant]);
+        setGarden(prev => [...prev, newOrnament]);
         return true;
     }
 
@@ -266,7 +290,7 @@ export function StorageProvider({ children }) {
             setRoutine,
             completeRoutine,
             refreshRoutine,
-            buyPlant
+            buyOrnament
         }}>
             {children}
         </StorageContext.Provider>

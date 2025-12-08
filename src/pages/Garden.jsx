@@ -2,120 +2,114 @@ import React, { useState } from 'react';
 import { useStorage } from '../context/StorageContext';
 import { useAuth } from '../context/AuthContext';
 import VisitGarden from '../components/VisitGarden';
+import TreeScene from '../components/ThreeGarden/TreeScene';
 
-const PLANT_TYPES = {
-    sunflower: { name: 'Sunflower', cost: 0.5, icon: '🌻', stages: ['🌰', '🌱', '🌿', '🌻'] },
-    rose: { name: 'Rose', cost: 0.8, icon: '🌹', stages: ['🌰', '🌱', '🌿', '🌹'] },
-    tree: { name: 'Oak Tree', cost: 1.5, icon: '🌳', stages: ['🌰', '🌱', '🌳', '🍎'] }
+const ORNAMENTS = {
+    red_ball: { name: 'Red Ball', cost: 0.5, icon: '🔴' },
+    blue_ball: { name: 'Blue Ball', cost: 0.5, icon: '🔵' },
+    gold_star: { name: 'Gold Star', cost: 1.0, icon: '⭐' },
+    lights: { name: 'Fairy Lights', cost: 2.0, icon: '💡' }
 };
 
 const Garden = ({ onBack }) => {
-    const { profile, garden, buyPlant } = useStorage();
+    const { profile, garden, buyOrnament } = useStorage();
     const { user } = useAuth();
+    const [isShopOpen, setIsShopOpen] = useState(false);
 
     const handleBuy = (type) => {
-        if (confirm(`Buy ${PLANT_TYPES[type].name} seed for ${PLANT_TYPES[type].cost} tokens?`)) {
-            buyPlant(type, PLANT_TYPES[type].cost);
+        const item = ORNAMENTS[type];
+        if (confirm(`Buy ${item.name} for ${item.cost} tokens?`)) {
+            // Generate Random Position on Tree Surface (Local Coordinates)
+            // Tree is roughly a cone from Y=0 to Y=3, Radius 1.2 to 0
+            const height = Math.random() * 3.0; // 0 to 3.0
+            const maxRadius = 1.2 * (1 - height / 3.0);
+            const radius = maxRadius * 0.9; // Slightly inside/surface
+            const angle = Math.random() * Math.PI * 2;
+
+            const x = Math.cos(angle) * radius;
+            const z = Math.sin(angle) * radius;
+            const y = height;
+
+            // Add offset for the stacked cones visuals if needed, but simple cone approx is fine for decorations
+            // We might shift Y up slightly so ornaments aren't in the trunk. The tree group starts at Y=-1.
+            // The foliage starts at roughly Y=0 relative to group.
+
+            const success = buyOrnament(type, item.cost, [x, y, z]);
+            if (success) {
+                // optional feedback?
+            }
         }
     };
 
     return (
-        <div className="page-container fade-in" style={{ padding: '24px', paddingBottom: '100px' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '24px' }}>
-                <button onClick={onBack} style={{ fontSize: '1.5rem', background: 'transparent', marginRight: '16px', border: 'none', cursor: 'pointer' }}>←</button>
-                <h1 style={{ fontSize: '1.5rem', margin: 0 }}>My Mind Garden</h1>
-            </div>
+        <div style={{ width: '100vw', height: '100vh', position: 'relative', overflow: 'hidden', background: '#0F172A' }}>
 
-            {/* HEADER stats */}
-            <div style={{ background: '#FFF4E6', padding: '20px', borderRadius: '16px', marginBottom: '32px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <div>
-                    <h3 style={{ margin: 0, color: '#D97706', fontSize: '1.2rem' }}>{profile.tokens} 🪙</h3>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.9rem', color: '#b45309' }}>Available Tokens</p>
+            {/* 3D SCENE BACKGROUND */}
+            <TreeScene />
+
+            {/* HEADER UI (Absolute) */}
+            <div style={{ position: 'absolute', top: 0, left: 0, width: '100%', padding: '20px', zIndex: 10, display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', pointerEvents: 'none' }}>
+                <div style={{ pointerEvents: 'auto' }}>
+                    <button onClick={onBack} style={{ background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '50%', width: '40px', height: '40px', color: 'white', fontSize: '1.2rem', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>←</button>
                 </div>
-                <div style={{ textAlign: 'right' }}>
-                    <div style={{ fontSize: '1.5rem' }}>{garden.length}</div>
-                    <p style={{ margin: '4px 0 0', fontSize: '0.8rem', color: '#b45309' }}>Plants</p>
+
+                <div style={{ pointerEvents: 'auto', background: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(10px)', padding: '10px 20px', borderRadius: '20px', color: 'white', textAlign: 'right', border: '1px solid rgba(255,255,255,0.2)' }}>
+                    <div style={{ fontSize: '1.2rem', fontWeight: 'bold' }}>{profile.tokens} 🪙</div>
+                    <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{garden.length} Ornaments</div>
                 </div>
             </div>
 
-            {/* GARDEN GRID */}
-            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))', gap: '16px', marginBottom: '40px' }}>
-                {garden.length === 0 && (
-                    <div style={{ gridColumn: '1 / -1', textAlign: 'center', padding: '40px', color: '#999', background: '#f9f9f9', borderRadius: '12px' }}>
-                        Your garden is empty.<br />Buy a seed to start! 🌱
-                    </div>
-                )}
-                {garden.map((plant) => {
-                    const info = PLANT_TYPES[plant.type] || PLANT_TYPES.sunflower;
-                    const stageIcon = info.stages[Math.min(plant.stage, info.stages.length - 1)];
-                    return (
-                        <div key={plant.id} style={{
-                            aspectRatio: '1',
-                            background: 'white',
-                            borderRadius: '16px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: 'var(--shadow-card)',
-                            position: 'relative'
-                        }}>
-                            <div style={{ fontSize: '2.5rem' }}>{stageIcon}</div>
-                            {plant.stage < 3 && (
-                                <div style={{ fontSize: '0.7rem', color: '#aaa', marginTop: '4px' }}>Growing...</div>
-                            )}
-                        </div>
-                    );
-                })}
-            </div>
+            {/* BOTTOM UI (Absolute) */}
+            <div style={{ position: 'absolute', bottom: 0, left: 0, width: '100%', zIndex: 10, pointerEvents: 'none', padding: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
 
-            {/* SHOP */}
-            <h3 style={{ marginBottom: '16px' }}>Seed Shop</h3>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                {Object.entries(PLANT_TYPES).map(([key, info]) => (
-                    <div key={key} style={{
-                        background: 'white',
-                        padding: '16px',
-                        borderRadius: '12px',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'space-between',
-                        boxShadow: 'var(--shadow-card)'
-                    }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                            <div style={{ fontSize: '1.5rem' }}>{info.stages[3]}</div>
-                            <div>
-                                <div style={{ fontWeight: 'bold' }}>{info.name}</div>
-                                <div style={{ fontSize: '0.8rem', color: '#666' }}>Grows via routines</div>
-                            </div>
-                        </div>
-                        <button
-                            onClick={() => handleBuy(key)}
-                            disabled={profile.tokens < info.cost}
-                            style={{
-                                background: profile.tokens >= info.cost ? 'var(--color-primary)' : '#eee',
-                                color: profile.tokens >= info.cost ? 'white' : '#999',
-                                border: 'none',
-                                padding: '8px 16px',
-                                borderRadius: '20px',
-                                fontSize: '0.9rem',
-                                fontWeight: '600',
-                                cursor: profile.tokens >= info.cost ? 'pointer' : 'not-allowed'
-                            }}
-                        >
-                            {info.cost} 🪙
+                {/* Visit Logic (Collapsible?) */}
+                {!isShopOpen && (
+                    <div style={{ pointerEvents: 'auto', marginBottom: '10px' }}>
+                        {/* We can integrate VisitGarden in a modal or separate drawer. For now, keep it simple. */}
+                        <button onClick={() => alert("Social feature coming to 3D soon!")} style={{ width: '100%', padding: '12px', borderRadius: '12px', background: 'rgba(13, 148, 136, 0.8)', border: 'none', color: 'white', fontWeight: 'bold', backdropFilter: 'blur(5px)', cursor: 'pointer' }}>
+                            🌏 Visit Neighbors (Social)
                         </button>
                     </div>
-                ))}
+                )}
 
-                <div style={{ marginTop: '24px', textAlign: 'center', color: '#666', fontSize: '0.9rem' }}>
-                    <p>Complete daily routines to grow your plants!</p>
+                {/* SHOP TOGGLE / PANEL */}
+                <div style={{ pointerEvents: 'auto', background: 'rgba(255, 255, 255, 0.95)', borderRadius: '20px', padding: '20px', boxShadow: '0 -5px 20px rgba(0,0,0,0.3)', transition: 'transform 0.3s ease' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '16px' }}>
+                        <h3 style={{ margin: 0, color: '#333' }}>🎄 Ornament Shop</h3>
+                        <button onClick={() => setIsShopOpen(!isShopOpen)} style={{ background: 'none', border: 'none', color: '#666', cursor: 'pointer' }}>
+                            {isShopOpen ? '▼' : '▲'}
+                        </button>
+                    </div>
+
+                    {isShopOpen && (
+                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '10px', animation: 'fadeIn 0.3s' }}>
+                            {Object.entries(ORNAMENTS).map(([key, item]) => (
+                                <button
+                                    key={key}
+                                    onClick={() => handleBuy(key)}
+                                    disabled={profile.tokens < item.cost}
+                                    style={{
+                                        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                                        padding: '12px', borderRadius: '12px',
+                                        border: '1px solid #ddd',
+                                        background: profile.tokens >= item.cost ? 'white' : '#f5f5f5',
+                                        opacity: profile.tokens >= item.cost ? 1 : 0.6,
+                                        cursor: profile.tokens >= item.cost ? 'pointer' : 'not-allowed'
+                                    }}
+                                >
+                                    <span style={{ fontSize: '1.5rem', marginBottom: '4px' }}>{item.icon}</span>
+                                    <span style={{ fontSize: '0.9rem', fontWeight: '600' }}>{item.name}</span>
+                                    <span style={{ fontSize: '0.8rem', color: '#666' }}>{item.cost} 🪙</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {!isShopOpen && (
+                        <div style={{ textAlign: 'center', fontSize: '0.9rem', color: '#666' }} onClick={() => setIsShopOpen(true)}>
+                            Tap to Open Shop
+                        </div>
+                    )}
                 </div>
-            </div>
-
-            {/* Social Feature */}
-            <div style={{ marginTop: '32px' }}>
-                <VisitGarden currentUserUid={user?.uid} onBack={() => { }} />
             </div>
         </div>
     );
