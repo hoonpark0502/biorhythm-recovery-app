@@ -10,7 +10,7 @@ import Garden from './pages/Garden';
 import Stats from './pages/Stats';
 import './index.css';
 
-import { db, auth } from './firebase';
+
 
 function AppContent() {
     const { profile } = useStorage();
