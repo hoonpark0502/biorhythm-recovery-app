@@ -16,7 +16,8 @@ const initialProfile = {
     name: '',
     isOnboarded: false,
     notificationTime: { morning: '08:00', evening: '20:00' },
-    tokens: 0,
+    tokens: 20,
+    hasWelcomeGift: true, // New users start with gift
     dailyRoutineCount: 0,
     lastRoutineDate: '',
     currentStreak: 0,
@@ -254,6 +255,18 @@ export function StorageProvider({ children }) {
             setGarden(newGarden);
         }
     }, [garden]);
+
+    // Migration: Welcome Bonus for Existing Users
+    useEffect(() => {
+        if (!profile.hasWelcomeGift) {
+            console.log("Granting Welcome Bonus: 20 Tokens");
+            const current = parseFloat(profile.tokens) || 0;
+            updateProfile({
+                tokens: current + 20,
+                hasWelcomeGift: true
+            });
+        }
+    }, [profile]); // Runs once per profile load/update until flag is set
 
     const throwObject = (type, cost) => {
         if (profile.tokens < cost) {
