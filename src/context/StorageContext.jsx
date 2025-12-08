@@ -52,7 +52,7 @@ export function StorageProvider({ children }) {
 
     // 1. PULL from Firestore on login
     useEffect(() => {
-        if (!user) return;
+        if (!user || !db) return; // Safely exit if no DB or User
 
         const syncData = async () => {
             try {
@@ -81,7 +81,7 @@ export function StorageProvider({ children }) {
 
     // 2. PUSH to Firestore on change (Debounced)
     useEffect(() => {
-        if (!user || !isSynced) return;
+        if (!user || !isSynced || !db) return; // Safely exit if no DB
 
         const timeoutId = setTimeout(async () => {
             try {

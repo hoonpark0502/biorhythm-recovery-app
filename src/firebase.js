@@ -16,10 +16,29 @@ const firebaseConfig = {
 };
 
 // Initialize Firebase
-const app = initializeApp(firebaseConfig);
-export const messaging = getMessaging(app);
-export const db = getFirestore(app);
-export const auth = getAuth(app);
+let app, messaging, db, auth;
+
+try {
+    // Validate Config
+    if (!firebaseConfig.apiKey) {
+        throw new Error("Missing Firebase API Key in Environment Variables");
+    }
+
+    app = initializeApp(firebaseConfig);
+    messaging = getMessaging(app);
+    db = getFirestore(app);
+    auth = getAuth(app);
+    console.log("Firebase initialized successfully");
+} catch (error) {
+    console.error("Firebase Initialization Error:", error);
+    // Export nulls so the app doesn't crash at module load
+    app = null;
+    messaging = null;
+    db = null;
+    auth = null;
+}
+
+export { app, messaging, db, auth };
 
 export const requestNotificationPermission = async () => {
     try {
