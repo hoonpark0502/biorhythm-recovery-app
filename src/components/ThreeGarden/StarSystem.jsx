@@ -2,7 +2,7 @@ import React, { useRef, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
 
-const Star = ({ position, data, isNight }) => {
+const Star = ({ position, data, isNight, onSelect }) => {
     const mesh = useRef();
 
     // Only show stars clearly at night? Or always?
@@ -20,25 +20,52 @@ const Star = ({ position, data, isNight }) => {
         }
     });
 
+    const handlePointerOver = (e) => {
+        e.stopPropagation(); // Prevent hitting things behind
+        setHover(true);
+        document.body.style.cursor = 'pointer';
+    };
+
+    const handlePointerOut = (e) => {
+        setHover(false);
+        document.body.style.cursor = 'auto';
+    };
+
+    const handleClick = (e) => {
+        e.stopPropagation();
+        onSelect(data);
+    };
+
     return (
         <group position={position}>
             <mesh
                 ref={mesh}
-                onPointerOver={() => setHover(true)}
-                onPointerOut={() => setHover(false)}
+                onPointerOver={handlePointerOver}
+                onPointerOut={handlePointerOut}
+                onClick={handleClick}
             >
                 {/* Star Shape */}
-                <dodecahedronGeometry args={[0.2, 0]} />
+                <dodecahedronGeometry args={[0.3, 0]} /> {/* Slightly bigger click target */}
                 <meshBasicMaterial
-                    color={isNight ? "gold" : "white"}
+                    color={hovered ? "#ffdd88" : (isNight ? "gold" : "white")}
                     transparent
-                    opacity={isNight ? 0.9 : 0.2}
+                    opacity={isNight ? (hovered ? 1 : 0.8) : 0.2}
                 />
             </mesh>
+            {/* Simple Label on Hover */}
             {hovered && isNight && (
-                <Html distanceFactor={10}>
-                    <div style={{ background: 'rgba(0,0,0,0.8)', color: 'white', padding: '5px', borderRadius: '4px', fontSize: '10px', whiteSpace: 'nowrap' }}>
-                        Thrown on: {new Date(data.plantedAt).toLocaleDateString()}
+                <Html distanceFactor={15} position={[0, 0.5, 0]}>
+                    <div style={{
+                        background: 'rgba(0,0,0,0.8)',
+                        color: 'white',
+                        padding: '4px 8px',
+                        borderRadius: '12px',
+                        fontSize: '12px',
+                        whiteSpace: 'nowrap',
+                        pointerEvents: 'none',
+                        border: '1px solid rgba(255,255,255,0.3)'
+                    }}>
+                        {new Date(data.plantedAt).toLocaleDateString()}
                     </div>
                 </Html>
             )}
@@ -46,11 +73,17 @@ const Star = ({ position, data, isNight }) => {
     );
 };
 
-const StarSystem = ({ items, isNight }) => {
+const StarSystem = ({ items, isNight, onSelectStar }) => {
     return (
         <group>
             {items.map((item, i) => (
-                <Star key={item.id} position={item.position} data={item} isNight={isNight} />
+                <Star
+                    key={item.id}
+                    position={item.position}
+                    data={item}
+                    isNight={isNight}
+                    onSelect={onSelectStar}
+                />
             ))}
         </group>
     );
