@@ -12,7 +12,7 @@ import './index.css';
 // Lazy load Garden (Heavy 3D)
 const Garden = React.lazy(() => import('./pages/Garden'));
 
-import { db, auth } from './firebase';
+
 
 
 
@@ -44,7 +44,7 @@ function AppContent() {
         switch (currentView) {
             case 'home': return <Home onNavigate={setCurrentView} />;
             case 'dailyCheck': return <DailyCheck onBack={() => setCurrentView('home')} />;
-            case 'dailyCheck': return <DailyCheck onBack={() => setCurrentView('home')} />;
+
             case 'relief': return <ReliefFlow onExit={() => setCurrentView('home')} />;
             case 'garden': return (
                 <React.Suspense fallback={<div style={{ padding: '20px' }}>Loading Garden...</div>}>
