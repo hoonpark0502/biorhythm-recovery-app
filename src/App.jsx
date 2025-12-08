@@ -6,9 +6,13 @@ import Onboarding from './pages/Onboarding';
 import Home from './pages/Home';
 import DailyCheck from './pages/DailyCheck';
 import ReliefFlow from './pages/ReliefFlow';
-import Garden from './pages/Garden';
 import Stats from './pages/Stats';
 import './index.css';
+
+// Lazy load Garden (Heavy 3D)
+const Garden = React.lazy(() => import('./pages/Garden'));
+
+import { db, auth } from './firebase';
 
 
 
@@ -40,8 +44,13 @@ function AppContent() {
         switch (currentView) {
             case 'home': return <Home onNavigate={setCurrentView} />;
             case 'dailyCheck': return <DailyCheck onBack={() => setCurrentView('home')} />;
+            case 'dailyCheck': return <DailyCheck onBack={() => setCurrentView('home')} />;
             case 'relief': return <ReliefFlow onExit={() => setCurrentView('home')} />;
-            case 'garden': return <Garden onBack={() => setCurrentView('home')} />;
+            case 'garden': return (
+                <React.Suspense fallback={<div style={{ padding: '20px' }}>Loading Garden...</div>}>
+                    <Garden onBack={() => setCurrentView('home')} />
+                </React.Suspense>
+            );
             case 'stats': return <Stats onBack={() => setCurrentView('home')} />;
             default: return <Home onNavigate={setCurrentView} />;
         }
