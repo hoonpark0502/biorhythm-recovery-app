@@ -61,7 +61,7 @@ const Onboarding = ({ onFinish }) => {
     );
 
     return (
-        <div className="onboarding-container fade-in" style={{ padding: '40px 24px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+        <div className="onboarding-container fade-in" style={{ padding: '100px 24px 40px 24px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
 
             {/* PROGRESS INDICATOR */}
             <div style={{ position: 'absolute', top: '40px', left: 0, width: '100%', display: 'flex', justifyContent: 'center', gap: '8px' }}>
