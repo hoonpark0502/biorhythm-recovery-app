@@ -10,8 +10,13 @@ const OBJECTS = {
 };
 
 const Garden = ({ onBack }) => {
-    const { profile, garden, throwObject } = useStorage();
+    const { profile, garden, throwObject, trackGardenVisit } = useStorage();
     const [isShopOpen, setIsShopOpen] = useState(false);
+
+    // Track visit
+    React.useEffect(() => {
+        trackGardenVisit();
+    }, []);
 
     // Day/Night Cycle (Manual Toggle for UX)
     const [isNight, setIsNight] = useState(true);

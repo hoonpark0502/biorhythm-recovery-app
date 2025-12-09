@@ -229,6 +229,21 @@ export function StorageProvider({ children }) {
         }
     };
 
+    // Auto-Tracking Methods
+    const trackReliefUsage = () => {
+        saveDailyLog({
+            auto_reliefUsed: true,
+            auto_reliefCount: (getTodayLog()?.auto_reliefCount || 0) + 1
+        });
+    };
+
+    const trackGardenVisit = () => {
+        const todayLog = getTodayLog();
+        if (!todayLog?.auto_gardenVisit) {
+            saveDailyLog({ auto_gardenVisit: true });
+        }
+    };
+
     // Migration: Convert old Garden items to Stars in the Sky
     useEffect(() => {
         if (garden.some(item => !item.isStar)) {
@@ -306,6 +321,8 @@ export function StorageProvider({ children }) {
             completeRoutine,
             refreshRoutine,
             throwObject,
+            trackReliefUsage,
+            trackGardenVisit,
             buyOrnament: throwObject // Backward compatibility
         }}>
             {children}

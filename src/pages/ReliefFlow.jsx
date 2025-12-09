@@ -1,8 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useStorage } from '../context/StorageContext';
 
 // --- Sub-components for Relief Steps ---
 
 const BreathingStep = ({ onNext }) => {
+    const { trackReliefUsage } = useStorage();
+
+    // Track usage on mount
+    useEffect(() => {
+        trackReliefUsage();
+    }, []);
+
     const [isBreathing, setIsBreathing] = useState(false);
     const [soundType, setSoundType] = useState('rain'); // rain, fire, harmony
     const [audioError, setAudioError] = useState(false);
@@ -100,8 +108,6 @@ const BreathingStep = ({ onNext }) => {
 
             const src = getAudioSrc(newType);
             if (audioRef.current) {
-                // Pause specific handling for smooth transition? 
-                // For MVP: just switch src
                 audioRef.current.src = src;
                 audioRef.current.play().catch(() => {
                     if (newType === 'harmony') {
@@ -129,7 +135,6 @@ const BreathingStep = ({ onNext }) => {
         };
     }, []);
 
-    // Error handler for <audio> tag itself
     const handleAudioError = () => {
         console.log("Audio tag error for:", soundType);
         if (soundType === 'harmony') {
@@ -140,13 +145,7 @@ const BreathingStep = ({ onNext }) => {
 
     return (
         <div style={{ textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-            {/* Hidden Audio Element */}
-            <audio
-                ref={audioRef}
-                loop
-                crossOrigin="anonymous"
-                onError={handleAudioError}
-            />
+            <audio ref={audioRef} loop crossOrigin="anonymous" onError={handleAudioError} />
 
             <h2 style={{ marginBottom: '20px' }}>Deep Breathing</h2>
 
@@ -157,7 +156,6 @@ const BreathingStep = ({ onNext }) => {
                         and follow the circle.
                     </p>
 
-                    {/* Sound Selector */}
                     <div style={{ display: 'flex', gap: '16px', justifyContent: 'center', marginBottom: '32px' }}>
                         {[
                             { id: 'rain', label: 'Rain', icon: '🌧️' },
@@ -199,7 +197,6 @@ const BreathingStep = ({ onNext }) => {
                         <p style={{ fontSize: '0.75rem', color: '#aaa', marginTop: '8px' }}>*Playing synthesized harmony (External file failed to load)</p>
                     )}
 
-                    {/* Switcher while playing */}
                     <div style={{ marginTop: '24px', display: 'flex', gap: '8px', justifyContent: 'center' }}>
                         {['rain', 'fire', 'harmony'].map(t => (
                             <button
@@ -227,22 +224,22 @@ const BreathingStep = ({ onNext }) => {
             )}
 
             <style>{`
-        .breathing-circle {
-          width: 200px;
-          height: 200px;
-          background: var(--color-primary);
-          border-radius: 50%;
-          opacity: 0.8;
-          margin: 0 auto;
-          animation: breath 14s infinite ease-in-out; 
-        }
-        @keyframes breath {
-          0% { transform: scale(0.4); opacity: 0.4; } 
-          28% { transform: scale(1); opacity: 1; }   
-          57% { transform: scale(1); opacity: 1; }   
-          100% { transform: scale(0.4); opacity: 0.4; } 
-        }
-      `}</style>
+            .breathing-circle {
+              width: 200px;
+              height: 200px;
+              background: var(--color-primary);
+              border-radius: 50%;
+              opacity: 0.8;
+              margin: 0 auto;
+              animation: breath 14s infinite ease-in-out; 
+            }
+            @keyframes breath {
+              0% { transform: scale(0.4); opacity: 0.4; } 
+              28% { transform: scale(1); opacity: 1; }   
+              57% { transform: scale(1); opacity: 1; }   
+              100% { transform: scale(0.4); opacity: 0.4; } 
+            }
+          `}</style>
         </div>
     );
 };
@@ -258,130 +255,62 @@ const GroundingStep = ({ onNext }) => {
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <label className="checkbox-card" style={{ padding: '20px', background: 'white', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: 'var(--shadow-card)' }}>
                     <input type="checkbox" checked={checks.see} onChange={() => setChecks(p => ({ ...p, see: !p.see }))} style={{ width: '24px', height: '24px' }} />
-                    <span style={{ fontSize: '1.1rem' }}>👀 5 things you check <b>see</b></span>
-                </label>
-                <label className="checkbox-card" style={{ padding: '20px', background: 'white', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: 'var(--shadow-card)' }}>
-                    <input type="checkbox" checked={checks.touch} onChange={() => setChecks(p => ({ ...p, touch: !p.touch }))} style={{ width: '24px', height: '24px' }} />
-                    <span style={{ fontSize: '1.1rem' }}>✋ 4 things you can <b>touch</b></span>
+                    <span style={{ fontSize: '1.1rem' }}>👀 5 things you can <b>see</b></span>
                 </label>
                 <label className="checkbox-card" style={{ padding: '20px', background: 'white', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: 'var(--shadow-card)' }}>
                     <input type="checkbox" checked={checks.hear} onChange={() => setChecks(p => ({ ...p, hear: !p.hear }))} style={{ width: '24px', height: '24px' }} />
-                    <span style={{ fontSize: '1.1rem' }}>👂 3 things you can <b>hear</b></span>
+                    <span style={{ fontSize: '1.1rem' }}>👂 4 things you can <b>hear</b></span>
+                </label>
+                <label className="checkbox-card" style={{ padding: '20px', background: 'white', borderRadius: '12px', display: 'flex', alignItems: 'center', gap: '16px', boxShadow: 'var(--shadow-card)' }}>
+                    <input type="checkbox" checked={checks.touch} onChange={() => setChecks(p => ({ ...p, touch: !p.touch }))} style={{ width: '24px', height: '24px' }} />
+                    <span style={{ fontSize: '1.1rem' }}>✋ 3 things you can <b>touch</b></span>
                 </label>
             </div>
 
-            <button onClick={onNext} className="btn-primary" style={{ marginTop: 'auto', width: '100%' }} disabled={!checks.see && !checks.touch && !checks.hear}>
-                Done
-            </button>
+            <div style={{ marginTop: 'auto', paddingBottom: '20px' }}>
+                <button
+                    onClick={onNext}
+                    disabled={!checks.see || !checks.hear || !checks.touch}
+                    className="btn-primary"
+                    style={{
+                        width: '100%',
+                        opacity: (!checks.see || !checks.hear || !checks.touch) ? 0.5 : 1
+                    }}
+                >
+                    Continue
+                </button>
+            </div>
         </div>
     );
 };
 
-const TrashStep = ({ onFinish }) => {
-    const [thought, setThought] = useState('');
-    const [isThrowing, setIsThrowing] = useState(false);
+const ReliefFlow = ({ onBack }) => {
+    const [step, setStep] = useState(0); // 0: Breathing, 1: Grounding, 2: Finish
 
-    const handleThrow = () => {
-        if (!thought) return;
-        setIsThrowing(true);
-        setTimeout(() => {
-            onFinish();
-        }, 1500);
-    };
-
-    if (isThrowing) {
+    if (step === 2) {
         return (
-            <div style={{ height: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
-                <div style={{ fontSize: '1.5rem', animation: 'flyAway 1s forwards' }}>🗑️ Poof! Gone.</div>
-                <style>{`
-                  @keyframes flyAway {
-                      0% { transform: scale(1) rotate(0deg); opacity: 1; }
-                      100% { transform: scale(0) rotate(720deg); opacity: 0; }
-                  }
-              `}</style>
+            <div className="page-container fade-in" style={{ padding: '40px', textAlign: 'center', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                <h2>You did great.</h2>
+                <p style={{ marginTop: '16px', lineHeight: '1.6', color: '#666' }}>
+                    The storm has passed.<br />
+                    You are safe now.
+                </p>
+                <button onClick={onBack} className="btn-primary" style={{ marginTop: '40px' }}>
+                    Return Home
+                </button>
             </div>
-        )
+        );
     }
 
     return (
-        <div style={{ height: '100%', display: 'flex', flexDirection: 'column' }}>
-            <h2 style={{ marginBottom: '16px' }}>Thought Trash Can.</h2>
-            <p style={{ marginBottom: '24px', color: '#666' }}>Write down what's bothering you, then throw it away.</p>
-
-            <textarea
-                value={thought}
-                onChange={(e) => setThought(e.target.value)}
-                placeholder="I am worried about..."
-                style={{
-                    width: '100%',
-                    height: '200px',
-                    padding: '20px',
-                    borderRadius: '12px',
-                    border: 'none',
-                    background: '#f0f0f0',
-                    fontSize: '1.1rem',
-                    resize: 'none',
-                    fontFamily: 'inherit'
-                }}
-            />
-
-            <button onClick={handleThrow} className="btn-primary" style={{ marginTop: 'auto', width: '100%' }} disabled={!thought}>
-                Throw it away
-            </button>
-        </div>
-    );
-};
-
-// --- Main Flow Component ---
-
-const ReliefFlow = ({ onExit }) => {
-    const [step, setStep] = useState(0);
-
-    const handleNext = () => setStep(p => p + 1);
-    const handleFinish = () => onExit();
-
-    return (
-        <div className="page-container fade-in" style={{ padding: '24px', height: '100vh', display: 'flex', flexDirection: 'column' }}>
-            <div style={{ display: 'flex', alignItems: 'center', marginBottom: '16px' }}>
-                <button onClick={onExit} style={{ background: 'none', fontSize: '1.5rem', marginRight: '16px', border: 'none', cursor: 'pointer' }}>✕</button>
-                <div style={{ flex: 1, height: '6px', background: '#eee', borderRadius: '3px', overflow: 'hidden' }}>
-                    <div style={{
-                        width: `${((step + 1) / 3) * 100}%`,
-                        height: '100%',
-                        background: 'var(--color-primary)',
-                        transition: 'width 0.3s'
-                    }}></div>
-                </div>
+        <div style={{ height: '100vh', display: 'flex', flexDirection: 'column', background: '#F8FAFC' }}>
+            <div style={{ padding: '20px' }}>
+                <button onClick={onBack} style={{ fontSize: '1.5rem', background: 'transparent', border: 'none', cursor: 'pointer' }}>✕</button>
             </div>
-
-            <div style={{ flex: 1 }}>
-                {step === 0 && <BreathingStep onNext={handleNext} />}
-                {step === 1 && <GroundingStep onNext={handleNext} />}
-                {step === 2 && <TrashStep onFinish={handleFinish} />}
+            <div style={{ flex: 1, padding: '20px', overflowY: 'auto' }}>
+                {step === 0 && <BreathingStep onNext={() => setStep(1)} />}
+                {step === 1 && <GroundingStep onNext={() => setStep(2)} />}
             </div>
-
-            <style>{`
-          .btn-primary {
-              background: var(--color-primary);
-              color: white;
-              padding: 16px;
-              border-radius: 50px;
-              font-size: 1.1rem;
-              font-weight: 600;
-              box-shadow: var(--shadow-float);
-              transition: transform 0.1s;
-              border: none;
-              cursor: pointer;
-          }
-          .btn-primary:active {
-              transform: scale(0.98);
-          }
-          .btn-primary:disabled {
-              background: #ccc;
-              box-shadow: none;
-              cursor: not-allowed;
-          }
-      `}</style>
         </div>
     );
 };
