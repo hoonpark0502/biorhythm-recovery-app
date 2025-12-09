@@ -1,27 +1,55 @@
 import React, { useRef, useMemo } from 'react';
-import { useFrame } from '@react-three/fiber';
+import { useFrame, useThree } from '@react-three/fiber';
 import { Html } from '@react-three/drei';
+import * as THREE from 'three';
 
-const Star = ({ position, data, isNight, onSelect }) => {
-    const mesh = useRef();
+// Generate a "Glow" texture on the fly
+const useGlowTexture = () => {
+    return useMemo(() => {
+        const canvas = document.createElement('canvas');
+        canvas.width = 64;
+        canvas.height = 64;
+        const ctx = canvas.getContext('2d');
 
-    // Only show stars clearly at night? Or always?
-    // Concept: "The objects ... becomes the star in night sky"
-    // So maybe transparent during day?
+        // Radial Gradient: White Core -> Core Color -> Transparent
+        const gradient = ctx.createRadialGradient(32, 32, 0, 32, 32, 32);
+        gradient.addColorStop(0, 'rgba(255, 255, 255, 1)'); // Core
+        gradient.addColorStop(0.2, 'rgba(255, 255, 255, 0.8)'); // Inner Glow
+        gradient.addColorStop(0.5, 'rgba(255, 220, 180, 0.2)'); // Outer Glow
+        gradient.addColorStop(1, 'rgba(0, 0, 0, 0)'); // Transparent Edge
 
+        ctx.fillStyle = gradient;
+        ctx.fillRect(0, 0, 64, 64);
+
+        const texture = new THREE.CanvasTexture(canvas);
+        texture.needsUpdate = true;
+        return texture;
+    }, []);
+};
+
+const Star = ({ position, data, isNight, onSelect, texture }) => {
+    const sprite = useRef();
     const [hovered, setHover] = React.useState(false);
 
+    // Randomize initial phase for twinkling
+    const phase = useMemo(() => Math.random() * Math.PI * 2, []);
+
     useFrame((state) => {
-        if (mesh.current) {
-            mesh.current.rotation.z += 0.01;
-            // Twinkle
-            const scale = 1 + Math.sin(state.clock.elapsedTime * 2 + position[0]) * 0.2;
-            mesh.current.scale.setScalar(scale);
+        if (sprite.current) {
+            // Pulsing Glow (Twinkle)
+            const time = state.clock.elapsedTime;
+            const scaleBase = hovered ? 2.5 : 2.0; // Base size
+            const pulse = Math.sin(time * 2 + phase) * 0.3; // Gentle pulse
+
+            const finalScale = scaleBase + pulse;
+            sprite.current.scale.set(finalScale, finalScale, 1);
+
+            // Subtle rotation? Sprites always face camera, but we can rotate visual if needed (not for sprite)
         }
     });
 
     const handlePointerOver = (e) => {
-        e.stopPropagation(); // Prevent hitting things behind
+        e.stopPropagation();
         setHover(true);
         document.body.style.cursor = 'pointer';
     };
@@ -32,40 +60,51 @@ const Star = ({ position, data, isNight, onSelect }) => {
     };
 
     const handleClick = (e) => {
-        e.stopPropagation();
+        e.stopPropagation(); // Stop click-through
         onSelect(data);
     };
 
     return (
         <group position={position}>
-            <mesh
-                ref={mesh}
+            <sprite
+                ref={sprite}
                 onPointerOver={handlePointerOver}
                 onPointerOut={handlePointerOut}
                 onClick={handleClick}
             >
-                {/* Star Shape */}
-                <dodecahedronGeometry args={[0.3, 0]} /> {/* Slightly bigger click target */}
-                <meshBasicMaterial
-                    color={hovered ? "#ffdd88" : (isNight ? "gold" : "white")}
+                <spriteMaterial
+                    attach="material"
+                    map={texture}
                     transparent
-                    opacity={isNight ? (hovered ? 1 : 0.8) : 0.2}
+                    opacity={isNight ? (hovered ? 1 : 0.9) : 0.3} // Faded during day
+                    depthWrite={false} // Additive blending look usually needs this
+                    blending={THREE.AdditiveBlending} // Make it GLOW
+                    color={hovered ? "#FFF" : (isNight ? "#FFD700" : "#FFFFFF")}
                 />
-            </mesh>
-            {/* Simple Label on Hover */}
+            </sprite>
+
+            {/* Label on Hover */}
             {hovered && isNight && (
-                <Html distanceFactor={15} position={[0, 0.5, 0]}>
-                    <div style={{
-                        background: 'rgba(0,0,0,0.8)',
-                        color: 'white',
-                        padding: '4px 8px',
-                        borderRadius: '12px',
+                <Html distanceFactor={15} position={[0, 1.5, 0]}>
+                    <div className="fade-in" style={{
+                        background: 'rgba(15, 23, 42, 0.9)',
+                        color: '#F1F5F9',
+                        padding: '6px 12px',
+                        borderRadius: '8px',
                         fontSize: '12px',
                         whiteSpace: 'nowrap',
                         pointerEvents: 'none',
-                        border: '1px solid rgba(255,255,255,0.3)'
+                        border: '1px solid rgba(255,255,255,0.2)',
+                        boxShadow: '0 4px 6px rgba(0,0,0,0.3)',
+                        backdropFilter: 'blur(4px)'
                     }}>
-                        {new Date(data.plantedAt).toLocaleDateString()}
+                        <div style={{ fontSize: '10px', opacity: 0.7, marginBottom: '2px' }}>
+                            {new Date(data.plantedAt).toLocaleDateString()}
+                        </div>
+                        <div style={{ fontWeight: '600' }}>
+                            {data.originType === 'stone' ? '🪨 Stone' :
+                                data.originType === 'pebble' ? '⚪ Pebble' : '🌿 Branch'}
+                        </div>
                     </div>
                 </Html>
             )}
@@ -74,6 +113,8 @@ const Star = ({ position, data, isNight, onSelect }) => {
 };
 
 const StarSystem = ({ items, isNight, onSelectStar }) => {
+    const glowTexture = useGlowTexture();
+
     return (
         <group>
             {items.map((item, i) => (
@@ -83,6 +124,7 @@ const StarSystem = ({ items, isNight, onSelectStar }) => {
                     data={item}
                     isNight={isNight}
                     onSelect={onSelectStar}
+                    texture={glowTexture}
                 />
             ))}
         </group>

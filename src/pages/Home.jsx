@@ -103,13 +103,13 @@ const Home = ({ onNavigate }) => {
                 </div>
 
                 <div style={{ display: 'flex', gap: '10px' }}>
-                    {/* Token Badge (Clickable) */}
+                    {/* Garden/River Link (Clickable) */}
                     <div
                         onClick={() => onNavigate('garden')}
-                        style={{ background: '#FFF4E6', padding: '6px 12px', borderRadius: '20px', color: '#D97706', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', border: '1px solid rgba(217, 119, 6, 0.2)' }}
+                        style={{ background: '#FFF0F5', padding: '6px 12px', borderRadius: '20px', color: '#BE185D', fontWeight: 'bold', fontSize: '0.9rem', display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', border: '1px solid rgba(190, 24, 93, 0.2)' }}
                     >
-                        <span>🪙</span> {profile.tokens || 0}
-                        <span style={{ fontSize: '0.7rem', opacity: 0.7 }}>▶</span>
+                        <span style={{ fontSize: '1.2rem' }}>🌸</span>
+                        <span style={{ fontSize: '0.9rem', color: '#D97706' }}>🪙 {profile.tokens || 0}</span>
                     </div>
                     {/* Settings Button */}
                     <button
