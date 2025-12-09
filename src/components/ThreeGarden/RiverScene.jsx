@@ -1,185 +1,214 @@
-import React, { useRef, useMemo } from 'react';
-import { Canvas, useFrame } from '@react-three/fiber';
-import { Sky, Stars, OrbitControls, Cloud, MeshDistortMaterial, Sparkles, Float } from '@react-three/drei';
-import * as THREE from 'three';
+import React from 'react';
+import { Canvas } from '@react-three/fiber';
+import { Stars, OrbitControls, Html, Sky } from '@react-three/drei';
 
-const FlowingWater = () => {
+/**
+ * 달 모양 + 약간의 발광
+ */
+function Moon() {
     return (
-        <mesh position={[0, -2.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[100, 100, 128, 128]} />
-            <MeshDistortMaterial
-                color="#0f172a" // Deep, Dark Night Blue
-                speed={1.5}
-                distort={0.3}
-                radius={1}
-                roughness={0.1} // Reflective
-                metalness={0.8}
-                opacity={0.9}
+        <mesh position={[6, 8, -10]}>
+            <sphereGeometry args={[1.2, 32, 32]} />
+            <meshStandardMaterial emissive="#ffe8b3" emissiveIntensity={1.2} color="#fff7d9" />
+        </mesh>
+    );
+}
+
+function LowPolyTree({ position }) {
+    return (
+        <group position={position}>
+            {/* 줄기 */}
+            <mesh castShadow position={[0, 0.75, 0]}>
+                <cylinderGeometry args={[0.15, 0.25, 1.5, 6]} />
+                <meshStandardMaterial color="#5c3b1f" />
+            </mesh>
+            {/* 잎 */}
+            <mesh castShadow position={[0, 1.7, 0]}>
+                <coneGeometry args={[0.9, 1.6, 7]} />
+                <meshStandardMaterial color="#1f7a4a" />
+            </mesh>
+        </group>
+    );
+}
+
+function Rock({ position }) {
+    return (
+        <mesh castShadow position={position}>
+            <dodecahedronGeometry args={[0.5, 0]} />
+            <meshStandardMaterial color="#6d7c8a" roughness={0.9} />
+        </mesh>
+    );
+}
+
+/**
+ * 단순화된 숲 / 배경 지형
+ */
+function Environment() {
+    const trees = [];
+    // Deterministic random for consistent React renders logic (or just simple static list)
+    // Using a few hardcoded positions for better composition than pure random in loop
+    const treePositions = [
+        [-5, 0, -5], [5, 0, -6], [-7, 0, 2], [8, 0, 3],
+        [-3, 0, 6], [6, 0, 7], [-8, 0, -2], [7, 0, -3],
+        [-2, 0, -7], [4, 0, -8]
+    ];
+
+    return (
+        <>
+            {/* 잔디 평면 */}
+            <mesh receiveShadow rotation-x={-Math.PI / 2} position={[0, -0.01, 0]}>
+                <planeGeometry args={[40, 40]} />
+                <meshStandardMaterial color="#1e4730" />
+            </mesh>
+
+            {/* 나무들 */}
+            {treePositions.map((pos, i) => <LowPolyTree key={i} position={pos} />)}
+
+            {/* 주변 바위 */}
+            <Rock position={[3, 0, 2]} />
+            <Rock position={[-4, 0, -3]} />
+            <Rock position={[5, 0, -1]} />
+            <Rock position={[-6, 0, 4]} />
+        </>
+    );
+}
+
+/**
+ * 강 (물 표면)
+ */
+function River() {
+    return (
+        <mesh
+            receiveShadow
+            rotation-x={-Math.PI / 2}
+            position={[0, 0.01, 0]} // Slightly above grass to prevent z-fight
+        >
+            {/* 폭 6, 길이 20 정도의 물 */}
+            <planeGeometry args={[6, 20, 32, 32]} />
+            <meshStandardMaterial
+                color="#1a3f66"
                 transparent
+                opacity={0.85}
+                roughness={0.3}
+                metalness={0.4}
             />
         </mesh>
     );
-};
+}
 
-const DetailedBridge = () => {
-    // Generate planks
-    const planks = useMemo(() => {
-        const items = [];
-        for (let i = -4; i <= 4; i += 0.6) {
-            items.push(i);
-        }
-        return items;
-    }, []);
-
-    return (
-        <group position={[0, -2.2, 0]}>
-            {/* Arched Support beams */}
-            <mesh position={[0, -0.2, 0]} receiveShadow>
-                <boxGeometry args={[9, 0.3, 2.5]} />
-                <meshStandardMaterial color="#451a03" />
+/**
+ * 나무 다리
+ */
+function Bridge() {
+    const planks = [];
+    for (let i = -3; i <= 3; i++) {
+        planks.push(
+            <mesh
+                key={i}
+                castShadow
+                position={[i * 0.6, 0.25, 0]}
+            >
+                <boxGeometry args={[0.55, 0.15, 2.8]} />
+                <meshStandardMaterial color="#7b4a2d" roughness={0.7} />
             </mesh>
+        );
+    }
 
-            {/* Individual Planks */}
-            {planks.map((x, i) => (
-                <mesh key={i} position={[x, 0.1, 0]} castShadow receiveShadow>
-                    <boxGeometry args={[0.5, 0.1, 3]} />
-                    <meshStandardMaterial color="#78350f" roughness={1} />
-                </mesh>
-            ))}
+    return <group>{planks}</group>;
+}
 
-            {/* Railings */}
-            <group position={[0, 0.5, 1.4]}>
-                <mesh position={[0, 0.6, 0]}><boxGeometry args={[9, 0.15, 0.15]} /><meshStandardMaterial color="#451a03" /></mesh>
-                <mesh position={[-4, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
-                <mesh position={[4, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
-                <mesh position={[0, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
-            </group>
-            <group position={[0, 0.5, -1.4]}>
-                <mesh position={[0, 0.6, 0]}><boxGeometry args={[9, 0.15, 0.15]} /><meshStandardMaterial color="#451a03" /></mesh>
-                <mesh position={[-4, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
-                <mesh position={[4, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
-                <mesh position={[0, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
-            </group>
+/**
+ * 빨간 후드 캐릭터 (심플 스타일)
+ */
+function LittleHoodCharacter({ position }) {
+    return (
+        <group position={position}>
+            {/* 다리 */}
+            <mesh castShadow position={[0, 0.25, 0]}>
+                <cylinderGeometry args={[0.15, 0.2, 0.5, 8]} />
+                <meshStandardMaterial color="#2b1c3a" />
+            </mesh>
+            {/* 몸통 + 망토 */}
+            <mesh castShadow position={[0, 0.75, 0]}>
+                <sphereGeometry args={[0.35, 16, 16]} />
+                <meshStandardMaterial color="#e14141" />
+            </mesh>
+            {/* 머리 */}
+            <mesh castShadow position={[0, 1.15, 0]}>
+                <sphereGeometry args={[0.32, 16, 16]} />
+                <meshStandardMaterial color="#f4d2b0" />
+            </mesh>
+            {/* 후드 */}
+            <mesh castShadow position={[0, 1.18, -0.03]}>
+                <sphereGeometry args={[0.36, 16, 16, 0, Math.PI * 2, 0, Math.PI / 1.2]} />
+                <meshStandardMaterial color="#e14141" />
+            </mesh>
+            {/* 눈/표정은 Html로 단순 표현 */}
+            <Html center position={[0, 1.15, 0.28]} style={{ pointerEvents: "none" }}>
+                <div
+                    style={{
+                        fontSize: "10px",
+                        color: "#3b2c26",
+                        transform: "translateY(-6px)",
+                        whiteSpace: 'nowrap'
+                    }}
+                >
+                    • •
+                </div>
+            </Html>
         </group>
     );
-};
+}
 
-const StylizedTree = ({ position, scale = 1 }) => (
-    <group position={position} scale={scale}>
-        {/* Trunk */}
-        <mesh position={[0, 0.5, 0]} castShadow>
-            <cylinderGeometry args={[0.2, 0.3, 1, 6]} />
-            <meshStandardMaterial color="#3f2e18" />
-        </mesh>
-        {/* Layers of leaves */}
-        <mesh position={[0, 1.5, 0]} castShadow>
-            <coneGeometry args={[1.5, 2, 7]} />
-            <meshStandardMaterial color="#166534" roughness={0.7} />
-        </mesh>
-        <mesh position={[0, 2.5, 0]} castShadow>
-            <coneGeometry args={[1.2, 2, 7]} />
-            <meshStandardMaterial color="#15803d" roughness={0.7} />
-        </mesh>
-        <mesh position={[0, 3.5, 0]} castShadow>
-            <coneGeometry args={[0.8, 1.5, 7]} />
-            <meshStandardMaterial color="#16a34a" roughness={0.7} />
-        </mesh>
-    </group>
-);
-
-const StylizedRock = ({ position, scale = 1, rotation }) => (
-    <mesh position={position} scale={scale} rotation={rotation} castShadow receiveShadow>
-        <dodecahedronGeometry args={[0.6, 0]} />
-        <meshStandardMaterial color="#64748b" roughness={0.8} />
-    </mesh>
-);
-
-const Environment = () => (
-    <group>
-        {/* Left Bank */}
-        <group position={[-12, -2.5, 0]}>
-            <mesh rotation={[-Math.PI / 2, 0, 0.1]} receiveShadow>
-                <planeGeometry args={[20, 100]} />
-                <meshStandardMaterial color="#064e3b" />
-            </mesh>
-            <StylizedTree position={[3, 0, -4]} scale={1.2} />
-            <StylizedTree position={[5, 0, 4]} scale={1.5} />
-            <StylizedTree position={[7, 0, -2]} scale={0.8} />
-            <StylizedRock position={[9, 0.5, 2]} scale={[1.5, 0.8, 1.2]} rotation={[0, 0.5, 0]} />
-            <StylizedRock position={[2, 0.2, 5]} scale={[0.5, 0.3, 0.5]} />
-        </group>
-
-        {/* Right Bank */}
-        <group position={[12, -2.5, 0]}>
-            <mesh rotation={[-Math.PI / 2, 0, -0.1]} receiveShadow>
-                <planeGeometry args={[20, 100]} />
-                <meshStandardMaterial color="#064e3b" />
-            </mesh>
-            <StylizedTree position={[-3, 0, 2]} scale={1.3} />
-            <StylizedTree position={[-6, 0, -5]} scale={1.6} />
-            <StylizedTree position={[-8, 0, 0]} scale={0.9} />
-            <StylizedRock position={[-5, 0.5, -2]} scale={[2, 1, 1.5]} rotation={[0, -0.2, 0.1]} />
-        </group>
-    </group>
-);
-
-const RiverScene = ({ children, isNight = true }) => {
+const RiverScene = ({ children }) => {
     return (
-        <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0 }}>
-            {/* Camera: Slightly higher and tilted down for a diorama look */}
-            <Canvas shadows camera={{ position: [0, 6, 14], fov: 40 }}>
-                {/* 1. ATMOSPHERE */}
-                <color attach="background" args={['#020617']} />
-                <fog attach="fog" args={['#020617', 5, 40]} />
-
-                <Sky
-                    sunPosition={isNight ? [0, -10, -50] : [100, 20, 100]}
-                    turbidity={0.1}
-                    rayleigh={isNight ? 0.01 : 1}
-                    mieCoefficient={0.005}
-                    mieDirectionalG={0.8}
-                    inclination={0.6} azimuth={0.25}
-                />
-
-                {isNight && (
-                    <>
-                        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
-                        {/* Magical ambient particles */}
-                        <Sparkles count={50} scale={20} size={2} speed={0.4} opacity={0.5} color="#a5f3fc" />
-                    </>
-                )}
-
-                {/* 2. LIGHTING */}
-                <ambientLight intensity={isNight ? 0.2 : 0.6} />
+        <div style={{ width: "100%", height: "100vh", position: 'absolute', top: 0, left: 0, background: "#050b1a" }}>
+            <Canvas
+                camera={{ position: [0, 4, 10], fov: 45 }}
+                shadows
+            >
+                <color attach="background" args={["#050b1a"]} />
+                <ambientLight intensity={0.5} />
                 <directionalLight
-                    position={[5, 10, 5]}
-                    intensity={isNight ? 0.5 : 1.5}
                     castShadow
-                    shadow-mapSize={[1024, 1024]}
+                    position={[5, 10, 5]}
+                    intensity={1.2}
+                    shadow-mapSize-width={1024}
+                    shadow-mapSize-height={1024}
                 />
-                {/* Rim Light for magic feel */}
-                <spotLight position={[-10, 10, -10]} angle={0.3} penumbra={1} intensity={2} color="#818cf8" />
-                {/* Bridge Light */}
-                <pointLight position={[0, 2, 0]} intensity={1} distance={10} color="#fbbf24" decay={2} />
 
+                {/* 밤하늘 별 */}
+                <Stars radius={80} depth={40} count={4000} factor={4} fade />
 
-                {/* 3. SCENE */}
-                <DetailedBridge />
+                {/* 달 비슷한 조명 */}
+                <Moon />
+
+                {/* 카메라 컨트롤 */}
+                <OrbitControls enablePan={false} minPolarAngle={0.4} maxPolarAngle={1.2} />
+
+                {/* 배경 숲 + 지형 */}
                 <Environment />
-                <FlowingWater />
 
+                {/* 강 + 다리 */}
+                <River />
+                <Bridge />
+
+                {/* 캐릭터 (단순화된 형태) */}
+                <LittleHoodCharacter position={[-2.2, 0, 0]} />
+
+                {/* 바닥 그림자 받는 평면 (Extend shadows) */}
+                <mesh
+                    receiveShadow
+                    rotation-x={-Math.PI / 2}
+                    position={[0, -0.02, 0]} // Lowest layer
+                >
+                    <planeGeometry args={[100, 100]} />
+                    <shadowMaterial transparent opacity={0.25} />
+                </mesh>
+
+                {/* Children (e.g., ThoughtObjects) */}
                 {children}
 
-                <OrbitControls
-                    target={[0, 0, 0]}
-                    minPolarAngle={Math.PI / 4}
-                    maxPolarAngle={Math.PI / 2.2}
-                    minAzimuthAngle={-Math.PI / 6}
-                    maxAzimuthAngle={Math.PI / 6}
-                    minDistance={10}
-                    maxDistance={35}
-                    enablePan={false}
-                />
             </Canvas>
         </div>
     );
