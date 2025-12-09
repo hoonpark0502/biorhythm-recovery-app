@@ -11,10 +11,13 @@ const STORAGE_KEYS = {
     ROUTINE: 'bio_today_routine',
 };
 
+const CURRENT_ONBOARDING_VERSION = 1;
+
 // Initial State
 const initialProfile = {
     name: '',
     isOnboarded: false,
+    onboardingVersion: 0,
     notificationTime: { morning: '08:00', evening: '20:00' },
     tokens: 20,
     hasWelcomeGift: true, // New users start with gift
@@ -121,13 +124,31 @@ export function StorageProvider({ children }) {
         localStorage.setItem('bio_garden', JSON.stringify(garden));
     }, [garden]);
 
+    // Version Check: Force Re-onboarding if version is old
+    useEffect(() => {
+        if (profile.isOnboarded) {
+            const userVersion = profile.onboardingVersion || 0;
+            if (userVersion < CURRENT_ONBOARDING_VERSION) {
+                console.log(`Forcing re-onboarding: v${userVersion} -> v${CURRENT_ONBOARDING_VERSION}`);
+                updateProfile({
+                    isOnboarded: false,
+                    onboardingVersion: CURRENT_ONBOARDING_VERSION // Prevent infinite loop if logic changes
+                });
+            }
+        }
+    }, [profile.isOnboarded]);
+
     // Actions
     const updateProfile = (updates) => {
         setProfile(prev => ({ ...prev, ...updates }));
     };
 
     const completeOnboarding = (name) => {
-        updateProfile({ name, isOnboarded: true });
+        updateProfile({
+            name,
+            isOnboarded: true,
+            onboardingVersion: CURRENT_ONBOARDING_VERSION
+        });
     };
 
     const saveDailyLog = (data) => {
