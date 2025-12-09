@@ -1,130 +1,183 @@
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Sky, Stars, OrbitControls, Cloud, MeshDistortMaterial, Cone } from '@react-three/drei';
+import { Sky, Stars, OrbitControls, Cloud, MeshDistortMaterial, Sparkles, Float } from '@react-three/drei';
 import * as THREE from 'three';
 
 const FlowingWater = () => {
     return (
-        <mesh position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
-            <planeGeometry args={[100, 100, 64, 64]} />
+        <mesh position={[0, -2.5, 0]} rotation={[-Math.PI / 2, 0, 0]}>
+            <planeGeometry args={[100, 100, 128, 128]} />
             <MeshDistortMaterial
-                color="#1E3A8A" // Deep Blue
-                speed={2}
-                distort={0.4}
+                color="#0f172a" // Deep, Dark Night Blue
+                speed={1.5}
+                distort={0.3}
                 radius={1}
-                roughness={0.2}
-                metalness={0.6}
+                roughness={0.1} // Reflective
+                metalness={0.8}
                 opacity={0.9}
-                transparent={true}
+                transparent
             />
         </mesh>
     );
 };
 
-const Bridge = () => {
-    // Simple Wooden Bridge
+const DetailedBridge = () => {
+    // Generate planks
+    const planks = useMemo(() => {
+        const items = [];
+        for (let i = -4; i <= 4; i += 0.6) {
+            items.push(i);
+        }
+        return items;
+    }, []);
+
     return (
-        <group position={[0, -1.8, 0]}>
-            {/* Main Planks */}
-            <mesh position={[0, 0.2, 0]} rotation={[0, 0, 0]} receiveShadow castShadow>
-                <boxGeometry args={[6, 0.2, 3]} />
-                <meshStandardMaterial color="#78350f" roughness={0.9} />
+        <group position={[0, -2.2, 0]}>
+            {/* Arched Support beams */}
+            <mesh position={[0, -0.2, 0]} receiveShadow>
+                <boxGeometry args={[9, 0.3, 2.5]} />
+                <meshStandardMaterial color="#451a03" />
             </mesh>
-            {/* Posts */}
-            <mesh position={[-2.5, -0.5, 1.2]}><cylinderGeometry args={[0.2, 0.2, 2]} /><meshStandardMaterial color="#552200" /></mesh>
-            <mesh position={[2.5, -0.5, 1.2]}><cylinderGeometry args={[0.2, 0.2, 2]} /><meshStandardMaterial color="#552200" /></mesh>
-            <mesh position={[-2.5, -0.5, -1.2]}><cylinderGeometry args={[0.2, 0.2, 2]} /><meshStandardMaterial color="#552200" /></mesh>
-            <mesh position={[2.5, -0.5, -1.2]}><cylinderGeometry args={[0.2, 0.2, 2]} /><meshStandardMaterial color="#552200" /></mesh>
+
+            {/* Individual Planks */}
+            {planks.map((x, i) => (
+                <mesh key={i} position={[x, 0.1, 0]} castShadow receiveShadow>
+                    <boxGeometry args={[0.5, 0.1, 3]} />
+                    <meshStandardMaterial color="#78350f" roughness={1} />
+                </mesh>
+            ))}
+
+            {/* Railings */}
+            <group position={[0, 0.5, 1.4]}>
+                <mesh position={[0, 0.6, 0]}><boxGeometry args={[9, 0.15, 0.15]} /><meshStandardMaterial color="#451a03" /></mesh>
+                <mesh position={[-4, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
+                <mesh position={[4, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
+                <mesh position={[0, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
+            </group>
+            <group position={[0, 0.5, -1.4]}>
+                <mesh position={[0, 0.6, 0]}><boxGeometry args={[9, 0.15, 0.15]} /><meshStandardMaterial color="#451a03" /></mesh>
+                <mesh position={[-4, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
+                <mesh position={[4, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
+                <mesh position={[0, 0, 0]}><cylinderGeometry args={[0.05, 0.05, 1.2]} /><meshStandardMaterial color="#451a03" /></mesh>
+            </group>
         </group>
     );
 };
 
-const Tree = ({ position, scale = 1, color = "#166534" }) => (
+const StylizedTree = ({ position, scale = 1 }) => (
     <group position={position} scale={scale}>
         {/* Trunk */}
-        <mesh position={[0, 1, 0]} castShadow>
-            <cylinderGeometry args={[0.3, 0.5, 2, 8]} />
+        <mesh position={[0, 0.5, 0]} castShadow>
+            <cylinderGeometry args={[0.2, 0.3, 1, 6]} />
             <meshStandardMaterial color="#3f2e18" />
         </mesh>
-        {/* Leaves */}
-        <mesh position={[0, 3, 0]} castShadow>
-            <coneGeometry args={[1.5, 3, 8]} />
-            <meshStandardMaterial color={color} roughness={0.8} />
+        {/* Layers of leaves */}
+        <mesh position={[0, 1.5, 0]} castShadow>
+            <coneGeometry args={[1.5, 2, 7]} />
+            <meshStandardMaterial color="#166534" roughness={0.7} />
         </mesh>
-        <mesh position={[0, 4.5, 0]} castShadow>
-            <coneGeometry args={[1.2, 2.5, 8]} />
-            <meshStandardMaterial color={color} roughness={0.8} />
+        <mesh position={[0, 2.5, 0]} castShadow>
+            <coneGeometry args={[1.2, 2, 7]} />
+            <meshStandardMaterial color="#15803d" roughness={0.7} />
+        </mesh>
+        <mesh position={[0, 3.5, 0]} castShadow>
+            <coneGeometry args={[0.8, 1.5, 7]} />
+            <meshStandardMaterial color="#16a34a" roughness={0.7} />
         </mesh>
     </group>
 );
 
-const Rock = ({ position, scale = 1 }) => (
-    <mesh position={position} scale={scale} rotation={[Math.random(), Math.random(), Math.random()]}>
-        <dodecahedronGeometry args={[0.8, 0]} />
-        <meshStandardMaterial color="#64748b" flatShading />
+const StylizedRock = ({ position, scale = 1, rotation }) => (
+    <mesh position={position} scale={scale} rotation={rotation} castShadow receiveShadow>
+        <dodecahedronGeometry args={[0.6, 0]} />
+        <meshStandardMaterial color="#64748b" roughness={0.8} />
     </mesh>
 );
 
 const Environment = () => (
     <group>
         {/* Left Bank */}
-        <group position={[-12, -2, 0]}>
+        <group position={[-12, -2.5, 0]}>
             <mesh rotation={[-Math.PI / 2, 0, 0.1]} receiveShadow>
                 <planeGeometry args={[20, 100]} />
                 <meshStandardMaterial color="#064e3b" />
             </mesh>
-            <Tree position={[2, 0, -5]} scale={1.2} />
-            <Tree position={[5, 0, 5]} scale={0.8} color="#14532d" />
-            <Rock position={[8, 0.5, 2]} />
+            <StylizedTree position={[3, 0, -4]} scale={1.2} />
+            <StylizedTree position={[5, 0, 4]} scale={1.5} />
+            <StylizedTree position={[7, 0, -2]} scale={0.8} />
+            <StylizedRock position={[9, 0.5, 2]} scale={[1.5, 0.8, 1.2]} rotation={[0, 0.5, 0]} />
+            <StylizedRock position={[2, 0.2, 5]} scale={[0.5, 0.3, 0.5]} />
         </group>
 
         {/* Right Bank */}
-        <group position={[12, -2, 0]}>
+        <group position={[12, -2.5, 0]}>
             <mesh rotation={[-Math.PI / 2, 0, -0.1]} receiveShadow>
                 <planeGeometry args={[20, 100]} />
                 <meshStandardMaterial color="#064e3b" />
             </mesh>
-            <Tree position={[-3, 0, 3]} scale={1.5} />
-            <Tree position={[-6, 0, -8]} scale={1} color="#14532d" />
-            <Rock position={[-5, 0.5, -2]} scale={1.5} />
+            <StylizedTree position={[-3, 0, 2]} scale={1.3} />
+            <StylizedTree position={[-6, 0, -5]} scale={1.6} />
+            <StylizedTree position={[-8, 0, 0]} scale={0.9} />
+            <StylizedRock position={[-5, 0.5, -2]} scale={[2, 1, 1.5]} rotation={[0, -0.2, 0.1]} />
         </group>
     </group>
 );
 
-const Landscape = ({ isNight }) => {
-    return (
-        <group>
-            <Sky sunPosition={isNight ? [0, -10, -50] : [100, 20, 100]} inclination={0.6} azimuth={0.1} />
-            {isNight && <Stars radius={80} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />}
-            <ambientLight intensity={isNight ? 0.3 : 0.7} />
-            <directionalLight position={[10, 20, 5]} intensity={1} castShadow />
-            {/* Moonlight */}
-            {isNight && <pointLight position={[-10, 15, -10]} intensity={2} color="#a5f3fc" distance={50} />}
-
-            <Bridge />
-            <Environment />
-            <FlowingWater />
-        </group>
-    );
-};
-
 const RiverScene = ({ children, isNight = true }) => {
     return (
         <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0 }}>
-            {/* Fixed Isometric Camera Angle */}
-            <Canvas shadows camera={{ position: [0, 8, 12], fov: 45 }}>
-                <Landscape isNight={isNight} />
+            {/* Camera: Slightly higher and tilted down for a diorama look */}
+            <Canvas shadows camera={{ position: [0, 6, 14], fov: 40 }}>
+                {/* 1. ATMOSPHERE */}
+                <color attach="background" args={['#020617']} />
+                <fog attach="fog" args={['#020617', 5, 40]} />
+
+                <Sky
+                    sunPosition={isNight ? [0, -10, -50] : [100, 20, 100]}
+                    turbidity={0.1}
+                    rayleigh={isNight ? 0.01 : 1}
+                    mieCoefficient={0.005}
+                    mieDirectionalG={0.8}
+                    inclination={0.6} azimuth={0.25}
+                />
+
+                {isNight && (
+                    <>
+                        <Stars radius={100} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />
+                        {/* Magical ambient particles */}
+                        <Sparkles count={50} scale={20} size={2} speed={0.4} opacity={0.5} color="#a5f3fc" />
+                    </>
+                )}
+
+                {/* 2. LIGHTING */}
+                <ambientLight intensity={isNight ? 0.2 : 0.6} />
+                <directionalLight
+                    position={[5, 10, 5]}
+                    intensity={isNight ? 0.5 : 1.5}
+                    castShadow
+                    shadow-mapSize={[1024, 1024]}
+                />
+                {/* Rim Light for magic feel */}
+                <spotLight position={[-10, 10, -10]} angle={0.3} penumbra={1} intensity={2} color="#818cf8" />
+                {/* Bridge Light */}
+                <pointLight position={[0, 2, 0]} intensity={1} distance={10} color="#fbbf24" decay={2} />
+
+
+                {/* 3. SCENE */}
+                <DetailedBridge />
+                <Environment />
+                <FlowingWater />
+
                 {children}
 
-                {/* Restricted Controls - Allow slight rotation but keep focus on bridge */}
                 <OrbitControls
                     target={[0, 0, 0]}
                     minPolarAngle={Math.PI / 4}
-                    maxPolarAngle={Math.PI / 3}
+                    maxPolarAngle={Math.PI / 2.2}
                     minAzimuthAngle={-Math.PI / 6}
                     maxAzimuthAngle={Math.PI / 6}
                     minDistance={10}
-                    maxDistance={30}
+                    maxDistance={35}
                     enablePan={false}
                 />
             </Canvas>
