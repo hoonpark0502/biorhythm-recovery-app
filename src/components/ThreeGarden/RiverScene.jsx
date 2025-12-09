@@ -1,6 +1,6 @@
 import React, { useRef, useMemo } from 'react';
 import { Canvas, useFrame } from '@react-three/fiber';
-import { Sky, Stars, OrbitControls, Cloud, MeshDistortMaterial } from '@react-three/drei';
+import { Sky, Stars, OrbitControls, Cloud, MeshDistortMaterial, Cone } from '@react-three/drei';
 import * as THREE from 'three';
 
 const FlowingWater = () => {
@@ -8,125 +8,124 @@ const FlowingWater = () => {
         <mesh position={[0, -2, 0]} rotation={[-Math.PI / 2, 0, 0]}>
             <planeGeometry args={[100, 100, 64, 64]} />
             <MeshDistortMaterial
-                color="#006994"
-                speed={2} // Faster animation for flow feel
-                distort={0.4} // Moderate distortion for ripples
+                color="#1E3A8A" // Deep Blue
+                speed={2}
+                distort={0.4}
                 radius={1}
-                roughness={0.1}
-                metalness={0.8}
-                opacity={0.8}
+                roughness={0.2}
+                metalness={0.6}
+                opacity={0.9}
                 transparent={true}
             />
         </mesh>
     );
 };
 
-const MovingParticle = ({ x, y, z, speed }) => {
-    const ref = useRef();
-    const initialZ = z;
-
-    useFrame(({ clock }) => {
-        if (ref.current) {
-            // Move along Z (negative is downstream)
-            ref.current.position.z -= speed;
-            // Reset if too far
-            if (ref.current.position.z < -30) {
-                ref.current.position.z = 20;
-            }
-        }
-    });
-
+const Bridge = () => {
+    // Simple Wooden Bridge
     return (
-        <mesh ref={ref} position={[x, y, initialZ]}>
-            <sphereGeometry args={[0.08, 8, 8]} />
-            <meshBasicMaterial color="#ffffff" opacity={0.3} transparent />
-        </mesh>
+        <group position={[0, -1.8, 0]}>
+            {/* Main Planks */}
+            <mesh position={[0, 0.2, 0]} rotation={[0, 0, 0]} receiveShadow castShadow>
+                <boxGeometry args={[6, 0.2, 3]} />
+                <meshStandardMaterial color="#78350f" roughness={0.9} />
+            </mesh>
+            {/* Posts */}
+            <mesh position={[-2.5, -0.5, 1.2]}><cylinderGeometry args={[0.2, 0.2, 2]} /><meshStandardMaterial color="#552200" /></mesh>
+            <mesh position={[2.5, -0.5, 1.2]}><cylinderGeometry args={[0.2, 0.2, 2]} /><meshStandardMaterial color="#552200" /></mesh>
+            <mesh position={[-2.5, -0.5, -1.2]}><cylinderGeometry args={[0.2, 0.2, 2]} /><meshStandardMaterial color="#552200" /></mesh>
+            <mesh position={[2.5, -0.5, -1.2]}><cylinderGeometry args={[0.2, 0.2, 2]} /><meshStandardMaterial color="#552200" /></mesh>
+        </group>
     );
-}
+};
 
-const FlowParticles = () => {
-    // Simulate "flow" by moving particles along Z
-    const count = 50;
+const Tree = ({ position, scale = 1, color = "#166534" }) => (
+    <group position={position} scale={scale}>
+        {/* Trunk */}
+        <mesh position={[0, 1, 0]} castShadow>
+            <cylinderGeometry args={[0.3, 0.5, 2, 8]} />
+            <meshStandardMaterial color="#3f2e18" />
+        </mesh>
+        {/* Leaves */}
+        <mesh position={[0, 3, 0]} castShadow>
+            <coneGeometry args={[1.5, 3, 8]} />
+            <meshStandardMaterial color={color} roughness={0.8} />
+        </mesh>
+        <mesh position={[0, 4.5, 0]} castShadow>
+            <coneGeometry args={[1.2, 2.5, 8]} />
+            <meshStandardMaterial color={color} roughness={0.8} />
+        </mesh>
+    </group>
+);
 
-    // Random positions
-    const particles = useMemo(() => {
-        const temp = [];
-        for (let i = 0; i < count; i++) {
-            const x = (Math.random() - 0.5) * 20; // Width of river
-            const y = -1.8; // Surface level
-            const z = (Math.random() - 0.5) * 40; // Length
-            const speed = 0.05 + Math.random() * 0.1;
-            temp.push({ x, y, z, speed });
-        }
-        return temp;
-    }, []);
+const Rock = ({ position, scale = 1 }) => (
+    <mesh position={position} scale={scale} rotation={[Math.random(), Math.random(), Math.random()]}>
+        <dodecahedronGeometry args={[0.8, 0]} />
+        <meshStandardMaterial color="#64748b" flatShading />
+    </mesh>
+);
 
+const Environment = () => (
+    <group>
+        {/* Left Bank */}
+        <group position={[-12, -2, 0]}>
+            <mesh rotation={[-Math.PI / 2, 0, 0.1]} receiveShadow>
+                <planeGeometry args={[20, 100]} />
+                <meshStandardMaterial color="#064e3b" />
+            </mesh>
+            <Tree position={[2, 0, -5]} scale={1.2} />
+            <Tree position={[5, 0, 5]} scale={0.8} color="#14532d" />
+            <Rock position={[8, 0.5, 2]} />
+        </group>
+
+        {/* Right Bank */}
+        <group position={[12, -2, 0]}>
+            <mesh rotation={[-Math.PI / 2, 0, -0.1]} receiveShadow>
+                <planeGeometry args={[20, 100]} />
+                <meshStandardMaterial color="#064e3b" />
+            </mesh>
+            <Tree position={[-3, 0, 3]} scale={1.5} />
+            <Tree position={[-6, 0, -8]} scale={1} color="#14532d" />
+            <Rock position={[-5, 0.5, -2]} scale={1.5} />
+        </group>
+    </group>
+);
+
+const Landscape = ({ isNight }) => {
     return (
         <group>
-            {particles.map((p, i) => <MovingParticle key={i} {...p} />)}
+            <Sky sunPosition={isNight ? [0, -10, -50] : [100, 20, 100]} inclination={0.6} azimuth={0.1} />
+            {isNight && <Stars radius={80} depth={50} count={3000} factor={4} saturation={0} fade speed={1} />}
+            <ambientLight intensity={isNight ? 0.3 : 0.7} />
+            <directionalLight position={[10, 20, 5]} intensity={1} castShadow />
+            {/* Moonlight */}
+            {isNight && <pointLight position={[-10, 15, -10]} intensity={2} color="#a5f3fc" distance={50} />}
+
+            <Bridge />
+            <Environment />
+            <FlowingWater />
         </group>
     );
 };
 
-const Terrain = () => {
-    return (
-        <group position={[0, -2.5, 0]}>
-            {/* Left Bank */}
-            <mesh position={[-14, 1, 0]} rotation={[-Math.PI / 2, 0, 0.1]}>
-                <planeGeometry args={[20, 100, 20, 20]} />
-                <meshStandardMaterial color="#3b5e40" roughness={0.9} />
-            </mesh>
-            {/* Right Bank */}
-            <mesh position={[14, 1, 0]} rotation={[-Math.PI / 2, 0, -0.1]}>
-                <planeGeometry args={[20, 100, 20, 20]} />
-                <meshStandardMaterial color="#3b5e40" roughness={0.9} />
-            </mesh>
-        </group>
-    );
-}
-
-const DayNightCycle = ({ isNight }) => {
-    // Animate sun position
-    const sunPos = isNight ? [0, -10, -50] : [100, 20, 100];
-
-    return (
-        <>
-            <Sky sunPosition={sunPos} inclination={0} azimuth={0.25} turbidity={8} rayleigh={isNight ? 0.1 : 5} mieCoefficient={0.005} mieDirectionalG={0.8} />
-            {isNight && <Stars radius={80} depth={50} count={5000} factor={4} saturation={0} fade speed={1} />}
-            {!isNight && <Cloud opacity={0.6} speed={0.4} width={20} depth={5} segments={10} position={[0, 15, -20]} />}
-
-            {/* Fog for depth - thicker at night */}
-            <fog attach="fog" args={[isNight ? '#050a14' : '#ffffff', 5, 40]} />
-        </>
-    );
-};
-
-const RiverScene = ({ children, isNight = false }) => {
+const RiverScene = ({ children, isNight = true }) => {
     return (
         <div style={{ width: '100%', height: '100%', position: 'absolute', top: 0, left: 0, zIndex: 0 }}>
-            <Canvas camera={{ position: [0, 3, 12], fov: 50 }}>
-                <DayNightCycle isNight={isNight} />
-
-                {/* Lights */}
-                <ambientLight intensity={isNight ? 0.1 : 0.6} />
-                <directionalLight position={[10, 20, 10]} intensity={isNight ? 0.2 : 1.5} color={isNight ? "#aaccee" : "#ffeedd"} castShadow />
-                {isNight && <pointLight position={[0, 5, 5]} intensity={0.8} color="#8888ff" distance={20} />}
-
-                <FlowingWater />
-                <FlowParticles />
-                <Terrain />
-
+            {/* Fixed Isometric Camera Angle */}
+            <Canvas shadows camera={{ position: [0, 8, 12], fov: 45 }}>
+                <Landscape isNight={isNight} />
                 {children}
 
-                {/* Restricted Controls */}
+                {/* Restricted Controls - Allow slight rotation but keep focus on bridge */}
                 <OrbitControls
-                    enablePan={false}
+                    target={[0, 0, 0]}
                     minPolarAngle={Math.PI / 4}
-                    maxPolarAngle={Math.PI / 2.2} // Prevent seeing under water
+                    maxPolarAngle={Math.PI / 3}
                     minAzimuthAngle={-Math.PI / 6}
                     maxAzimuthAngle={Math.PI / 6}
-                    minDistance={5}
-                    maxDistance={25}
+                    minDistance={10}
+                    maxDistance={30}
+                    enablePan={false}
                 />
             </Canvas>
         </div>
