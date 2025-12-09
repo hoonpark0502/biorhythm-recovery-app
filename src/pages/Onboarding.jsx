@@ -61,10 +61,10 @@ const Onboarding = ({ onFinish }) => {
     );
 
     return (
-        <div className="onboarding-container fade-in" style={{ padding: '100px 24px 40px 24px', height: '100%', display: 'flex', flexDirection: 'column', justifyContent: 'center', position: 'relative' }}>
+        <div className="onboarding-container fade-in" style={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}>
 
-            {/* PROGRESS INDICATOR */}
-            <div style={{ position: 'absolute', top: '40px', left: 0, width: '100%', display: 'flex', justifyContent: 'center', gap: '8px' }}>
+            {/* PROGRESS INDICATOR - Static at Top */}
+            <div style={{ paddingTop: '20px', paddingBottom: '20px', display: 'flex', justifyContent: 'center', gap: '8px', minHeight: '40px' }}>
                 {[0, 1, 2, 3, 4, 5].map(i => (
                     <div key={i} style={{
                         width: '8px', height: '8px', borderRadius: '50%',
@@ -74,8 +74,8 @@ const Onboarding = ({ onFinish }) => {
                 ))}
             </div>
 
-            {/* CONTENT */}
-            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+            {/* CONTENT - Flex Grow to take available space */}
+            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'center', alignItems: 'center' }}>
                 {step === 0 && (
                     <div style={{ textAlign: 'center' }}>
                         <h1 style={{ color: 'var(--color-primary-dark)', marginBottom: '16px', fontSize: '2rem' }}>Deep Breath.</h1>
@@ -87,7 +87,7 @@ const Onboarding = ({ onFinish }) => {
                 )}
 
                 {step === 1 && (
-                    <div className="fade-in" style={{ textAlign: 'center' }}>
+                    <div className="fade-in" style={{ textAlign: 'center', width: '100%' }}>
                         <h2 style={{ marginBottom: '24px' }}>What should I call you?</h2>
                         <input
                             type="text"
@@ -142,8 +142,8 @@ const Onboarding = ({ onFinish }) => {
                 )}
             </div>
 
-            {/* NAVIGATION */}
-            <div style={{ marginTop: '20px', textAlign: 'center' }}>
+            {/* NAVIGATION - Static at Bottom */}
+            <div style={{ marginTop: '20px', textAlign: 'center', paddingBottom: '20px' }}>
                 <button
                     onClick={handleNext}
                     disabled={isLoading}
