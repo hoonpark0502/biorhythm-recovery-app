@@ -29,50 +29,74 @@ const Onboarding = ({ onFinish }) => {
         // Prevent multiple stacks
         if (nodesRef.current.length > 0) return;
 
-        // Create an Ethereal Pad (Major 9th Chord: C - E - G - B - D)
-        // Spread frequencies slightly for "chorus" effect
+        // MASTER GAIN (Volume Control)
+        const masterGain = ctx.createGain();
+        masterGain.gain.value = 0.0; // Start silent
+        masterGain.gain.linearRampToValueAtTime(0.04, ctx.currentTime + 4); // Slow fade in
+        masterGain.connect(ctx.destination);
+
+        // DELAY LINE (The "Mystic" Echo)
+        const delay = ctx.createDelay();
+        delay.delayTime.value = 0.7; // 700ms echo
+        const feedback = ctx.createGain();
+        feedback.gain.value = 0.4; // Decay
+
+        delay.connect(feedback);
+        feedback.connect(delay);
+        delay.connect(masterGain); // Send echo to master
+
+        // FILTER (The "Breathing")
+        const filter = ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.value = 400; // Deep start
+        filter.Q.value = 1;
+        filter.connect(masterGain); // Dry signal
+        filter.connect(delay);      // Wet signal
+
+        // FILTER LFO
+        const lfo = ctx.createOscillator();
+        lfo.type = 'sine';
+        lfo.frequency.value = 0.05; // 20s cycle (Very slow breath)
+        const lfoGain = ctx.createGain();
+        lfoGain.gain.value = 300; // Sweep range +/- 300Hz
+        lfo.connect(lfoGain);
+        lfoGain.connect(filter.frequency);
+        lfo.start();
+
+        // OSCILLATORS ("Mystic" Chord: C Minor 11 Spread)
+        // C2, G2, Bb3, Eb3, F4, D4(9)
         const freqs = [
-            130.81, // C3
-            196.00, // G3
-            261.63, // C4
-            329.63, // E4
-            392.00, // G4
+            65.41,  // C2 (Deep Root)
+            98.00,  // G2 (Fifth)
+            233.08, // Bb3 (Minor 7)
+            311.13, // Eb4 (Minor 3) -> High mystic feel
+            349.23, // F4  (11th - The Suspended Mystery)
+            587.33  // D5  (9th - Sparkle)
         ];
 
         freqs.forEach((f, i) => {
             const osc = ctx.createOscillator();
-            osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+            // Mix Sine (Pure) and Triangle (Warm)
+            osc.type = i > 4 ? 'sine' : 'triangle';
+
+            // Detune slightly for "Chorus" effect
+            const detune = (Math.random() - 0.5) * 6; // +/- 3 cents
+            osc.detune.value = detune;
             osc.frequency.value = f;
 
-            const gain = ctx.createGain();
-            // Low volume for background
-            gain.gain.value = 0.0;
+            const oscGain = ctx.createGain();
+            // Randomize volumes slightly for organic texture
+            oscGain.gain.value = 0.05 + Math.random() * 0.02;
 
-            // Fade in
-            gain.gain.linearRampToValueAtTime(0.015, ctx.currentTime + 3);
-
-            // LFO for "breathing" movement
-            const lfo = ctx.createOscillator();
-            lfo.frequency.value = 0.1 + (Math.random() * 0.1); // Slow breath
-            const lfoGain = ctx.createGain();
-            lfoGain.gain.value = 0.005; // Depth
-
-            lfo.connect(lfoGain);
-            lfoGain.connect(gain.gain);
-            osc.connect(gain);
-
-            // Lowpass filter to soften
-            const filter = ctx.createBiquadFilter();
-            filter.type = 'lowpass';
-            filter.frequency.value = 600; // Soft cut
-            gain.connect(filter);
-            filter.connect(ctx.destination);
+            osc.connect(oscGain);
+            oscGain.connect(filter);
 
             osc.start();
-            lfo.start();
-
-            nodesRef.current.push(osc, lfo, gain, lfoGain, filter);
+            nodesRef.current.push(osc, oscGain);
         });
+
+        // Track effect nodes for cleanup
+        nodesRef.current.push(masterGain, filter, lfo, lfoGain, delay, feedback);
     };
 
     const stopAudio = () => {
@@ -80,26 +104,18 @@ const Onboarding = ({ onFinish }) => {
             const ctx = audioCtxRef.current;
             nodesRef.current.forEach(node => {
                 try {
+                    // Fade out Oscillators and Master
                     if (node.gain) {
-                        // Fade out
                         node.gain.cancelScheduledValues(ctx.currentTime);
-                        node.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
+                        node.gain.linearRampToValueAtTime(0, ctx.currentTime + 3); // 3s fade out
                     }
                     setTimeout(() => {
                         if (node.stop) node.stop();
                         node.disconnect();
-                    }, 1000);
+                    }, 3500);
                 } catch (e) { }
             });
             nodesRef.current = [];
-            // close context later to allow fade out
-            setTimeout(() => {
-                if (ctx.state !== 'closed' && ctx.state !== 'suspended') {
-                    // keep context or suspend? suspend is safer for re-use, close if totally done.
-                    // For onboarding we can keep it open until unmount logic handles it?
-                    // Actually safe to just suspend or leave it. 
-                }
-            }, 1200);
         }
     };
 
@@ -107,7 +123,6 @@ const Onboarding = ({ onFinish }) => {
     useEffect(() => {
         return () => {
             stopAudio();
-            if (audioCtxRef.current) audioCtxRef.current.close();
         };
     }, []);
 
