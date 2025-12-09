@@ -13,6 +13,11 @@ const Onboarding = ({ onFinish }) => {
     // 4: Tutorial - Relief
     // 5: Permission & Finish
 
+    // 5: Permission & Finish
+
+    const [name, setName] = useState('');
+    const [isLoading, setIsLoading] = useState(false);
+
     // Audio Refs
     const bgmRef = React.useRef(null);
     const audioCtxRef = React.useRef(null);
