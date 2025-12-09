@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useStorage } from '../context/StorageContext';
 import { requestNotificationPermission } from '../firebase';
 
@@ -13,29 +13,101 @@ const Onboarding = ({ onFinish }) => {
     // 4: Tutorial - Relief
     // 5: Permission & Finish
 
-    // 5: Permission & Finish
-
     const [name, setName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
 
     // Audio Refs
-    const bgmRef = React.useRef(null);
-    const audioCtxRef = React.useRef(null);
+    const audioCtxRef = useRef(null);
+    const nodesRef = useRef([]);
 
-    // Play BGM on first interaction
-    React.useEffect(() => {
-        bgmRef.current = new Audio('/sounds/harmony.mp3');
-        bgmRef.current.loop = true;
-        bgmRef.current.volume = 0.3;
+    const startAmbientPad = () => {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
+        const ctx = audioCtxRef.current;
+        if (ctx.state === 'suspended') ctx.resume();
 
+        // Prevent multiple stacks
+        if (nodesRef.current.length > 0) return;
+
+        // Create an Ethereal Pad (Major 9th Chord: C - E - G - B - D)
+        // Spread frequencies slightly for "chorus" effect
+        const freqs = [
+            130.81, // C3
+            196.00, // G3
+            261.63, // C4
+            329.63, // E4
+            392.00, // G4
+        ];
+
+        freqs.forEach((f, i) => {
+            const osc = ctx.createOscillator();
+            osc.type = i % 2 === 0 ? 'sine' : 'triangle';
+            osc.frequency.value = f;
+
+            const gain = ctx.createGain();
+            // Low volume for background
+            gain.gain.value = 0.0;
+
+            // Fade in
+            gain.gain.linearRampToValueAtTime(0.015, ctx.currentTime + 3);
+
+            // LFO for "breathing" movement
+            const lfo = ctx.createOscillator();
+            lfo.frequency.value = 0.1 + (Math.random() * 0.1); // Slow breath
+            const lfoGain = ctx.createGain();
+            lfoGain.gain.value = 0.005; // Depth
+
+            lfo.connect(lfoGain);
+            lfoGain.connect(gain.gain);
+            osc.connect(gain);
+
+            // Lowpass filter to soften
+            const filter = ctx.createBiquadFilter();
+            filter.type = 'lowpass';
+            filter.frequency.value = 600; // Soft cut
+            gain.connect(filter);
+            filter.connect(ctx.destination);
+
+            osc.start();
+            lfo.start();
+
+            nodesRef.current.push(osc, lfo, gain, lfoGain, filter);
+        });
+    };
+
+    const stopAudio = () => {
+        if (audioCtxRef.current) {
+            const ctx = audioCtxRef.current;
+            nodesRef.current.forEach(node => {
+                try {
+                    if (node.gain) {
+                        // Fade out
+                        node.gain.cancelScheduledValues(ctx.currentTime);
+                        node.gain.linearRampToValueAtTime(0, ctx.currentTime + 1);
+                    }
+                    setTimeout(() => {
+                        if (node.stop) node.stop();
+                        node.disconnect();
+                    }, 1000);
+                } catch (e) { }
+            });
+            nodesRef.current = [];
+            // close context later to allow fade out
+            setTimeout(() => {
+                if (ctx.state !== 'closed' && ctx.state !== 'suspended') {
+                    // keep context or suspend? suspend is safer for re-use, close if totally done.
+                    // For onboarding we can keep it open until unmount logic handles it?
+                    // Actually safe to just suspend or leave it. 
+                }
+            }, 1200);
+        }
+    };
+
+    // Cleanup on unmount
+    useEffect(() => {
         return () => {
-            if (bgmRef.current) {
-                bgmRef.current.pause();
-                bgmRef.current = null;
-            }
-            if (audioCtxRef.current) {
-                audioCtxRef.current.close();
-            }
+            stopAudio();
+            if (audioCtxRef.current) audioCtxRef.current.close();
         };
     }, []);
 
@@ -43,6 +115,7 @@ const Onboarding = ({ onFinish }) => {
         const Ctx = window.AudioContext || window.webkitAudioContext;
         if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
         const ctx = audioCtxRef.current;
+        if (ctx.state === 'suspended') ctx.resume();
 
         const playNote = (freq, time) => {
             const osc = ctx.createOscillator();
@@ -64,10 +137,8 @@ const Onboarding = ({ onFinish }) => {
     };
 
     const handleNext = async () => {
-        // Start BGM on first click if not playing
-        if (bgmRef.current && bgmRef.current.paused) {
-            bgmRef.current.play().catch(e => console.log("Audio autoplay prevented"));
-        }
+        // Start Ambient Pad on first interaction
+        startAmbientPad();
 
         // Validation: Name
         if (step === 1 && name.trim() === '') {
@@ -91,14 +162,16 @@ const Onboarding = ({ onFinish }) => {
             } catch (e) {
                 console.warn(e);
             }
+
             // SUCCESS EFFECT
             playSuccessSound();
 
             // Delay for effect
             setTimeout(() => {
                 setIsLoading(false);
+                stopAudio(); // Stop bgm
                 completeOnboarding(name || 'Friend');
-            }, 1000);
+            }, 1500);
         } else {
             setStep(prev => prev + 1);
         }
