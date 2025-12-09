@@ -15,6 +15,7 @@ const Onboarding = ({ onFinish }) => {
 
     const [name, setName] = useState('');
     const [isLoading, setIsLoading] = useState(false);
+    const [isSuccess, setIsSuccess] = useState(false);
 
     // Audio Refs
     const audioCtxRef = useRef(null);
@@ -126,31 +127,6 @@ const Onboarding = ({ onFinish }) => {
         };
     }, []);
 
-    const playSuccessSound = () => {
-        const Ctx = window.AudioContext || window.webkitAudioContext;
-        if (!audioCtxRef.current) audioCtxRef.current = new Ctx();
-        const ctx = audioCtxRef.current;
-        if (ctx.state === 'suspended') ctx.resume();
-
-        const playNote = (freq, time) => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.frequency.setValueAtTime(freq, ctx.currentTime + time);
-            gain.gain.setValueAtTime(0.1, ctx.currentTime + time);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + time + 1);
-            osc.connect(gain);
-            gain.connect(ctx.destination);
-            osc.start(ctx.currentTime + time);
-            osc.stop(ctx.currentTime + time + 1);
-        };
-
-        // Major Chord Arpeggio (C5, E5, G5, C6)
-        playNote(523.25, 0);
-        playNote(659.25, 0.1);
-        playNote(783.99, 0.2);
-        playNote(1046.50, 0.3);
-    };
-
     const handleNext = async () => {
         // Start Ambient Pad on first interaction
         startAmbientPad();
@@ -178,15 +154,15 @@ const Onboarding = ({ onFinish }) => {
                 console.warn(e);
             }
 
-            // SUCCESS EFFECT
-            playSuccessSound();
+            // Visual Success Effect (No Sound)
+            setIsSuccess(true);
 
-            // Delay for effect
+            // Delay for animation
             setTimeout(() => {
                 setIsLoading(false);
                 stopAudio(); // Stop bgm
                 completeOnboarding(name || 'Friend');
-            }, 1500);
+            }, 2500);
         } else {
             setStep(prev => prev + 1);
         }
@@ -195,6 +171,50 @@ const Onboarding = ({ onFinish }) => {
     const handleBack = () => {
         if (step > 0) setStep(prev => prev - 1);
     };
+
+    const SuccessAnimation = () => (
+        <div style={{
+            position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+            background: 'rgba(255,255,255,0.95)', zIndex: 100,
+            display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center'
+        }}>
+            <div style={{ fontSize: '5rem', animation: 'pop-bounce 0.8s cubic-bezier(0.68, -0.55, 0.265, 1.55) forwards' }}>
+                🎉
+            </div>
+            <h2 style={{
+                marginTop: '20px', color: 'var(--color-primary-dark)',
+                opacity: 0, animation: 'fade-up 0.5s ease-out 0.5s forwards'
+            }}>
+                You're all set!
+            </h2>
+            <div style={{ position: 'relative', width: '200px', height: '100px', marginTop: '-150px' }}>
+                {['✨', '🌸', '⭐', '✨'].map((emoji, i) => (
+                    <div key={i} style={{
+                        position: 'absolute', left: `${20 + i * 20}%`, top: '50%',
+                        fontSize: '2rem',
+                        animation: `float-particle 1.5s ease-out ${0.2 + i * 0.1}s forwards`,
+                        opacity: 0
+                    }}>{emoji}</div>
+                ))}
+            </div>
+            <style>{`
+                @keyframes pop-bounce {
+                    0% { transform: scale(0); opacity: 0; }
+                    80% { transform: scale(1.2); opacity: 1; }
+                    100% { transform: scale(1); opacity: 1; }
+                }
+                @keyframes fade-up {
+                    0% { transform: translateY(20px); opacity: 0; }
+                    100% { transform: translateY(0px); opacity: 1; }
+                }
+                @keyframes float-particle {
+                    0% { transform: translate(0, 0) scale(0.5); opacity: 0; }
+                    50% { opacity: 1; }
+                    100% { transform: translate(${(Math.random() - 0.5) * 100}px, -100px) scale(1.2); opacity: 0; }
+                }
+            `}</style>
+        </div>
+    );
 
     const TutorialSlide = ({ icon, title, desc, extra }) => (
         <div className="fade-in" style={{ textAlign: 'center' }}>
@@ -215,7 +235,8 @@ const Onboarding = ({ onFinish }) => {
     );
 
     return (
-        <div className="onboarding-container fade-in" style={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column' }}>
+        <div className="onboarding-container fade-in" style={{ padding: '24px', height: '100%', display: 'flex', flexDirection: 'column', position: 'relative' }}>
+            {isSuccess && <SuccessAnimation />}
 
             {/* PROGRESS INDICATOR - Static at Top */}
             <div style={{ paddingTop: '20px', paddingBottom: '20px', display: 'flex', justifyContent: 'center', gap: '8px', minHeight: '40px' }}>
