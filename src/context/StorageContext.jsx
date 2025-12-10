@@ -50,8 +50,13 @@ export function StorageProvider({ children }) {
     });
 
     const [garden, setGarden] = useState(() => {
-        const saved = localStorage.getItem('bio_garden');
-        return saved ? JSON.parse(saved) : [];
+        try {
+            const saved = localStorage.getItem('bio_garden');
+            const parsed = saved ? JSON.parse(saved) : [];
+            return Array.isArray(parsed) ? parsed : [];
+        } catch (e) {
+            return [];
+        }
     });
 
     // 1. PULL from Firestore on login
@@ -70,7 +75,7 @@ export function StorageProvider({ children }) {
                     // Merge Strategy: Remote overwrites local for simplicity in this MVP
                     if (data.profile) setProfile(data.profile);
                     if (data.logs) setLogs(data.logs);
-                    if (data.garden) setGarden(data.garden);
+                    if (data.garden && Array.isArray(data.garden)) setGarden(data.garden);
                 } else {
                     console.log("No cloud data. Creating...");
                 }

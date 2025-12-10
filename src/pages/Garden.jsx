@@ -76,7 +76,7 @@ const Garden = ({ onBack }) => {
                 />
 
                 {/* 2. Planted Stars from Storage */}
-                {garden.map((item, i) => {
+                {(garden || []).map((item, i) => {
                     // Map internal types to visual kinds
                     let kind = 'cup';
                     let color = '#9fd3ff';
