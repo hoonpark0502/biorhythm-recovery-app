@@ -174,16 +174,16 @@ const RiverScene = ({ children }) => {
                 <fog attach="fog" args={["#02040a", 5, 30]} />
 
                 {/* 2. LIGHTING (Cinematic) */}
-                <ambientLight intensity={0.2} color="#a5f3fc" />
+                <ambientLight intensity={0.5} color="#a5f3fc" />
                 <directionalLight
                     castShadow
                     position={[5, 10, 5]}
-                    intensity={0.8}
+                    intensity={1.2}
                     color="#e0f2fe"
                     shadow-mapSize={[1024, 1024]}
                 />
                 {/* Rim Light for Character */}
-                <spotLight position={[-5, 5, 0]} intensity={2} color="#818cf8" angle={0.5} penumbra={1} />
+                <spotLight position={[-5, 5, 0]} intensity={3} color="#818cf8" angle={0.5} penumbra={1} />
 
                 {/* 3. ENVIRONMENT */}
                 <Stars radius={80} depth={40} count={5000} factor={4} fade saturation={0} />
@@ -195,19 +195,20 @@ const RiverScene = ({ children }) => {
                 <Bridge />
 
                 {/* 5. CHARACTER (Replaces LittleHoodCharacter) */}
-                {/* <group position={[-2, 0.35, 0]} rotation={[0, Math.PI / 2, 0]} scale={0.8}>
+                <group position={[-2, 0.35, 0]} rotation={[0, Math.PI / 2, 0]} scale={0.8}>
                     <Character onPointerOver={null} onClick={null} />
-                </group> */}
+                </group>
 
                 {/* 6. CHILD COMPONENTS (ThoughtObjects) */}
                 {children}
 
                 {/* 7. POST PROCESSING (The Key Visual) */}
-                {/* <EffectComposer disableNormalPass>
-                    <Bloom luminanceThreshold={1} mipmapBlur intensity={1.5} radius={0.6} />
+                <EffectComposer disableNormalPass>
+                    {/* Bloom: luminanceThreshold controls what glows (only bright things) */}
+                    <Bloom luminanceThreshold={0.8} mipmapBlur intensity={1.8} radius={0.6} />
                     <Vignette eskil={false} offset={0.1} darkness={1.1} />
                     <Noise opacity={0.02} />
-                </EffectComposer> */}
+                </EffectComposer>
 
                 {/* Controls */}
                 <OrbitControls enablePan={false} minPolarAngle={0.4} maxPolarAngle={1.2} maxDistance={20} minDistance={5} />
