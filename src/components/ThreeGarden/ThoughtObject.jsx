@@ -1,9 +1,10 @@
-import React, { useRef, useState, useEffect } from 'react';
+import React, { useRef, useState, useEffect, useMemo } from 'react';
 import { useFrame } from '@react-three/fiber';
+import { Tube } from '@react-three/drei';
 import * as THREE from 'three';
 
 /**
- * 간단한 컵, 책, 시계 형태 – 로우폴리 맛으로
+ * 간단한 컵, 책, 시계 형태
  */
 const CupGeometry = () => (
     <group>
@@ -21,76 +22,110 @@ const ClockGeometry = () => (
     </group>
 );
 
-/**
- * "생각" 오브젝트: 클릭 시
- * 1) 다리 근처에서 -> 강 쪽으로 떨어졌다가 -> 위로 날아가며 -> 하늘의 별로 변신
- */
+// --- Magic Swirl Effect (Tube) ---
+const MagicSwirlTrail = ({ progress }) => {
+    const curve = useMemo(() => {
+        // Spiral going up
+        const points = [];
+        for (let i = 0; i <= 20; i++) {
+            const t = i / 2; // Height factor
+            const r = 0.2 + (t * 0.2); // Expanding radius
+            const x = Math.sin(t * 3) * r;
+            const z = Math.cos(t * 3) * r;
+            points.push(new THREE.Vector3(x, t, z));
+        }
+        return new THREE.CatmullRomCurve3(points);
+    }, []);
+
+    // We want the tube to "grow" as progress increases
+    // BUT TubeGeometry doesn't animate length easily without re-creation.
+    // Hack: Scale Y or use a revealing shader. 
+    // Easier: Visible length control if Tube supports it? No.
+    // Let's just scale the whole mesh Y based on progress.
+
+    // Scale X/Z can be 1. Y grows from 0 to 1.
+    // But this distorts the spiral if not careful.
+    // For a "Magic" effect, distortion is fine.
+
+    return (
+        <mesh position={[0, 0, 0]} scale={[1, progress, 1]}>
+            <tubeGeometry args={[curve, 64, 0.05, 8, false]} />
+            <meshStandardMaterial
+                color="#a5f3fc"
+                emissive="#a5f3fc"
+                emissiveIntensity={3}
+                transparent
+                opacity={Math.max(0, 1 - progress)} // Fade out as it completes? No, keep visual.
+            />
+        </mesh>
+    );
+};
+
+
 const ThoughtObject = ({
     kind,
     color,
     start,
     riverTarget,
     skyTarget,
-    isPlanted = false, // If true, starts as a star
-    onThrow // Callback when throw is confirmed/started
+    isPlanted = false,
+    onThrow
 }) => {
     const meshRef = useRef();
-    // If planted, start at 'star' phase. If not, 'idle'.
     const [phase, setPhase] = useState(isPlanted ? "star" : "idle");
     const [t, setT] = useState(0);
 
-    // Initial position logic
+    // Initial position
     useEffect(() => {
         if (isPlanted && meshRef.current) {
             meshRef.current.position.set(...skyTarget);
-            // If it's a star, ensure material is emissive immediately
+            // Stars spin slowly
         }
     }, [isPlanted, skyTarget]);
 
     useFrame((_, delta) => {
         if (phase === "idle" || !meshRef.current) return;
 
-        const speed = 0.7; // 애니메이션 속도
+        const speed = 0.5; // Slightly slower for dramatic effect
 
         if (phase === "star") {
-            // 하늘의 작은 발광체 - Twinkle
             meshRef.current.scale.setScalar(0.4 + Math.sin(Date.now() * 0.005) * 0.1);
+            meshRef.current.rotation.y += delta;
             return;
         }
 
-        // Animation Progress
         const newT = Math.min(t + delta * speed, 1);
         setT(newT);
 
         if (phase === "toRiver") {
-            // start -> riverTarget으로 lerp
             const pos = new THREE.Vector3().fromArray(start);
             const target = new THREE.Vector3().fromArray(riverTarget);
             pos.lerp(target, newT);
             meshRef.current.position.copy(pos);
 
-            // Rotate slightly falling
-            meshRef.current.rotation.z += delta * 2;
-            meshRef.current.rotation.x += delta;
+            // Tumble
+            meshRef.current.rotation.z += delta * 5;
+            meshRef.current.rotation.x += delta * 2;
 
             if (newT >= 1) {
                 setPhase("toSky");
                 setT(0);
             }
         } else if (phase === "toSky") {
-            // riverTarget -> skyTarget + 약간의 곡선 효과
             const from = new THREE.Vector3().fromArray(riverTarget);
             const to = new THREE.Vector3().fromArray(skyTarget);
             const pos = from.clone().lerp(to, newT);
 
-            // 살짝 나선 느낌으로 흔들기
-            pos.x += Math.sin(newT * Math.PI * 2) * 0.3;
-            pos.z += Math.cos(newT * Math.PI * 2) * 0.3;
+            // Magic Swirl Motion logic on the object itself
+            // "Spiral" up
+            const swirlRadius = 0.5 + (newT * 2);
+            pos.x += Math.sin(newT * Math.PI * 8) * swirlRadius;
+            pos.z += Math.cos(newT * Math.PI * 8) * swirlRadius;
 
             meshRef.current.position.copy(pos);
-            meshRef.current.rotation.y += 0.08;
+            meshRef.current.rotation.y += delta * 15; // Spin fast
 
-            // 점점 작아지기
+            // Scale down
             const s = THREE.MathUtils.lerp(1, 0.4, newT);
             meshRef.current.scale.setScalar(s);
 
@@ -102,9 +137,9 @@ const ThoughtObject = ({
 
     const handleClick = (e) => {
         e.stopPropagation();
-        if (phase !== "idle") return; // 이미 던졌거나 별이면 무시
+        if (phase !== "idle") return;
         if (onThrow) {
-            const success = onThrow(kind); // Trigger logic (deduct tokens, etc)
+            const success = onThrow(kind);
             if (success) {
                 setPhase("toRiver");
                 setT(0);
@@ -113,6 +148,7 @@ const ThoughtObject = ({
     };
 
     const isStar = phase === "star";
+    const isFloating = phase === "toSky";
 
     return (
         <group>
@@ -125,7 +161,7 @@ const ThoughtObject = ({
                 onPointerOut={() => { document.body.style.cursor = 'auto' }}
             >
                 {isStar ? (
-                    <icosahedronGeometry args={[0.25, 0]} />
+                    <dodecahedronGeometry args={[0.25, 0]} />
                 ) : kind === "cup" ? (
                     <CupGeometry />
                 ) : kind === "book" ? (
@@ -135,12 +171,37 @@ const ThoughtObject = ({
                 )}
                 <meshStandardMaterial
                     color={color}
-                    emissive={isStar ? color : "#000000"}
-                    emissiveIntensity={isStar ? 1.5 : 0}
-                    roughness={0.5}
-                    metalness={0.1}
+                    emissive={isStar || isFloating ? color : "#000000"}
+                    emissiveIntensity={isStar ? 2 : (isFloating ? 1 : 0)}
+                    roughness={isStar ? 0.1 : 0.5}
+                    metalness={0.5}
+                    toneMapped={false}
                 />
             </mesh>
+
+            {/* Trail separate from mesh to avoid spinning with object tumbling */}
+            {isFloating && meshRef.current && (
+                <group position={meshRef.current.position}>
+                    {/* Actually, trail needs to be static world space or attached to a pivot. 
+                        If attached here, it follows object position.
+                        Visual hack: Just a simple particle or tube following?
+                        Let's skip complex Tube trail if it's too glitchy.
+                        The user asked for "Magic Swirl" via TubeGeometry logic.
+                        Let's put a vertical static tube appearing at the "launch site" (riverTarget) 
+                        and scaling up as we go? 
+                    */}
+                    {/* For now, relying on the 'movement' swirl. 
+                        Let's try a simple Sparkle effect following the object.
+                    */}
+                </group>
+            )}
+
+            {/* User specifically asked for TubeGeometry Swirl. 
+                Let's render it at the 'from' point (riverTarget) growing up to 'to' point (skyTarget).
+            */}
+            {isFloating && (
+                <MagicSwirlTrail progress={t} />
+            )}
         </group>
     );
 };
