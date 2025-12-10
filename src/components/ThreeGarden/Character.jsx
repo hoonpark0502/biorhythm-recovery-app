@@ -9,10 +9,11 @@ export default function Character(props) {
 
     // If there are animations, play the first one as idle by default
     React.useEffect(() => {
-        if (actions && Object.keys(actions).length > 0) {
-            // Play first animation found
-            const firstAction = Object.values(actions)[0];
-            firstAction.reset().fadeIn(0.5).play();
+        if (actions) {
+            const actionValues = Object.values(actions);
+            if (actionValues.length > 0) {
+                actionValues[0].reset().fadeIn(0.5).play();
+            }
         }
     }, [actions]);
 
