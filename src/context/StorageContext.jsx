@@ -53,7 +53,8 @@ export function StorageProvider({ children }) {
         try {
             const saved = localStorage.getItem('bio_garden');
             const parsed = saved ? JSON.parse(saved) : [];
-            return Array.isArray(parsed) ? parsed : [];
+            const valid = Array.isArray(parsed) ? parsed.filter(i => i) : [];
+            return valid;
         } catch (e) {
             return [];
         }
@@ -75,7 +76,9 @@ export function StorageProvider({ children }) {
                     // Merge Strategy: Remote overwrites local for simplicity in this MVP
                     if (data.profile) setProfile(data.profile);
                     if (data.logs) setLogs(data.logs);
-                    if (data.garden && Array.isArray(data.garden)) setGarden(data.garden);
+                    if (data.garden && Array.isArray(data.garden)) {
+                        setGarden(data.garden.filter(i => i));
+                    }
                 } else {
                     console.log("No cloud data. Creating...");
                 }

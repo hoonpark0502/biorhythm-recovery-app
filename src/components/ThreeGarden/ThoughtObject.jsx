@@ -199,11 +199,12 @@ const ThoughtObject = ({
             {/* User specifically asked for TubeGeometry Swirl. 
                 Let's render it at the 'from' point (riverTarget) growing up to 'to' point (skyTarget).
             */}
-            {isFloating && (
-                <MagicSwirlTrail progress={t} />
-            )}
+            {/* {isFloating && (
+                 <MagicSwirlTrail progress={t} />
+            )} */}
         </group>
     );
 };
 
 export default ThoughtObject;
+```
