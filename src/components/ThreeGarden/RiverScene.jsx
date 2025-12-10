@@ -194,10 +194,10 @@ const RiverScene = ({ children }) => {
                 <River />
                 <Bridge />
 
-                {/* 5. CHARACTER REMOVED (User Request due to crash) */}
-                {/* <group position={[-2, 0.35, 0]} rotation={[0, Math.PI / 2, 0]} scale={0.8}>
+                {/* 5. CHARACTER (Restored with Crash Fixes) */}
+                <group position={[-2, 0.35, 0]} rotation={[0, Math.PI / 2, 0]} scale={0.8}>
                     <Character onPointerOver={null} onClick={null} />
-                </group> */}
+                </group>
 
                 {/* 6. CHILD COMPONENTS (ThoughtObjects) */}
                 {children}
