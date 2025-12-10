@@ -5,7 +5,7 @@ export default function Character(props) {
     const group = useRef();
     // Load the GLB model. Note the URL encoding for the space in filename
     const { nodes, materials, animations } = useGLTF('/models/little%20gir3.glb');
-    const { actions } = useAnimations(animations, group);
+    const { actions } = useAnimations(animations || [], group);
 
     React.useEffect(() => {
         if (actions) {
