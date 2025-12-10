@@ -3,8 +3,8 @@ import { useGLTF, useAnimations } from '@react-three/drei';
 
 export default function Character(props) {
     const group = useRef();
-    // Load the GLB model. Note the URL encoding for the space in filename
-    const { nodes, materials, animations } = useGLTF('/models/little%20gir3.glb');
+    // Load the NEW GLB model "redhood.glb"
+    const { nodes, materials, animations } = useGLTF('/models/redhood.glb');
     const { actions } = useAnimations(animations || [], group);
 
     React.useEffect(() => {
@@ -21,17 +21,16 @@ export default function Character(props) {
         console.warn("Character GLTF failed to load nodes");
         return null;
     }
-    if (!nodes.Scene) {
-        console.warn("Character GLTF missing 'Scene' node. Available:", Object.keys(nodes));
-        // Fallback: Try to find a Scene-like object or return null
-        return null;
-    }
+
+    // Log available nodes to help debug "Box" issue
+    console.log("Character Nodes:", Object.keys(nodes));
 
     return (
         <group ref={group} {...props} dispose={null}>
-            <primitive object={nodes.Scene} />
+            {/* If the model has a specific root scene, use it. Usually nodes.Scene or just primitive of scene */}
+            <primitive object={nodes.Scene || nodes.scene} />
         </group>
     );
 }
 
-useGLTF.preload('/models/little%20gir3.glb');
+useGLTF.preload('/models/redhood.glb');
