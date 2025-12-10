@@ -8,6 +8,7 @@ const Garden = ({ onBack }) => {
 
     // Track visit
     React.useEffect(() => {
+        console.log("Garden Render. Garden Data:", garden);
         trackGardenVisit();
     }, []);
 
@@ -91,11 +92,13 @@ const Garden = ({ onBack }) => {
                     // but 'item.position' from previous logic was likely low values.
                     // We need Sky Values (Y > 5).
 
-                    // Use stored position but offset Y to sky level
+                    // Validate Position (Legacy data safeguard)
+                    const rawPos = (item.position && Array.isArray(item.position)) ? item.position : [0, 0, 0];
+
                     const skyPos = [
-                        item.position[0],
-                        Math.abs(item.position[1]) + 5, // Ensure above horizon
-                        item.position[2] - 5 // Push back a bit
+                        rawPos[0],
+                        Math.abs(rawPos[1]) + 5,
+                        rawPos[2] - 5
                     ];
 
                     return (
