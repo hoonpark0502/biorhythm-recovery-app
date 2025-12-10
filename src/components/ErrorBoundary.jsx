@@ -12,6 +12,22 @@ class ErrorBoundary extends React.Component {
 
     componentDidCatch(error, errorInfo) {
         console.error("Uncaught error:", error, errorInfo);
+
+        // Auto-recovery for chunk load errors (Deployment updates)
+        const isChunkError = error.toString().includes("Importing a module script failed") ||
+            error.toString().includes("Loading chunk") ||
+            error.toString().includes("undefined is not an object"); // Retry for the elusive undefined error too?
+
+        if (isChunkError) {
+            const lastReload = sessionStorage.getItem('chunk_reload');
+            if (!lastReload || (Date.now() - parseInt(lastReload)) > 10000) {
+                console.log("Chunk error detected. Auto-reloading...");
+                sessionStorage.setItem('chunk_reload', Date.now().toString());
+                window.location.reload(true);
+                return;
+            }
+        }
+
         this.setState({ error, errorInfo });
     }
 

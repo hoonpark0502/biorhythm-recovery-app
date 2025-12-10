@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 
 // Hardcoded current version - increment this when deploying new features!
-const APP_VERSION = "1.0.1";
+const APP_VERSION = "1.0.2";
 const CHECK_INTERVAL = 1000 * 60; // Check every 1 minute for faster debugging
 
 const UpdateNotifier = () => {
