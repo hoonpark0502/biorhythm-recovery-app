@@ -195,20 +195,19 @@ const RiverScene = ({ children }) => {
                 <Bridge />
 
                 {/* 5. CHARACTER (Replaces LittleHoodCharacter) */}
-                <group position={[-2, 0.35, 0]} rotation={[0, Math.PI / 2, 0]} scale={0.8}>
+                {/* <group position={[-2, 0.35, 0]} rotation={[0, Math.PI / 2, 0]} scale={0.8}>
                     <Character onPointerOver={null} onClick={null} />
-                </group>
+                </group> */}
 
                 {/* 6. CHILD COMPONENTS (ThoughtObjects) */}
                 {children}
 
                 {/* 7. POST PROCESSING (The Key Visual) */}
-                <EffectComposer disableNormalPass>
-                    {/* Bloom: luminanceThreshold controls what glows (only bright things) */}
+                {/* <EffectComposer disableNormalPass>
                     <Bloom luminanceThreshold={1} mipmapBlur intensity={1.5} radius={0.6} />
                     <Vignette eskil={false} offset={0.1} darkness={1.1} />
                     <Noise opacity={0.02} />
-                </EffectComposer>
+                </EffectComposer> */}
 
                 {/* Controls */}
                 <OrbitControls enablePan={false} minPolarAngle={0.4} maxPolarAngle={1.2} maxDistance={20} minDistance={5} />

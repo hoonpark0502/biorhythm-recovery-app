@@ -8,6 +8,7 @@ import DailyCheck from './pages/DailyCheck';
 import ReliefFlow from './pages/ReliefFlow';
 import Stats from './pages/Stats';
 import UpdateNotifier from './components/UpdateNotifier';
+import ErrorBoundary from './components/ErrorBoundary';
 import './index.css';
 
 // Lazy load Garden (Heavy 3D)
@@ -43,9 +44,11 @@ function AppContent() {
             case 'dailyCheck': return <DailyCheck onBack={() => setCurrentView('home')} />;
             case 'relief': return <ReliefFlow onExit={() => setCurrentView('home')} />;
             case 'garden': return (
-                <React.Suspense fallback={<div style={{ padding: '20px' }}>Loading Garden...</div>}>
-                    <Garden onBack={() => setCurrentView('home')} />
-                </React.Suspense>
+                <ErrorBoundary>
+                    <React.Suspense fallback={<div style={{ padding: '20px' }}>Loading Garden...</div>}>
+                        <Garden onBack={() => setCurrentView('home')} />
+                    </React.Suspense>
+                </ErrorBoundary>
             );
             case 'stats': return <Stats onBack={() => setCurrentView('home')} />;
             default: return <Home onNavigate={setCurrentView} />;
