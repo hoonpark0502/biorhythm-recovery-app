@@ -1,8 +1,8 @@
 import React, { useEffect, useState } from 'react';
 
 // Hardcoded current version - increment this when deploying new features!
-const APP_VERSION = "1.0.0";
-const CHECK_INTERVAL = 60 * 60 * 1000; // Check every hour
+const APP_VERSION = "1.0.1";
+const CHECK_INTERVAL = 1000 * 60; // Check every 1 minute for faster debugging
 
 const UpdateNotifier = () => {
     const [updateAvailable, setUpdateAvailable] = useState(false);
@@ -10,12 +10,14 @@ const UpdateNotifier = () => {
     const checkVersion = async () => {
         try {
             // Append timestamp to prevent caching of the version file itself
-            const res = await fetch(`/version.json?t=${Date.now()}`);
+            const res = await fetch(`/version.json?t=${Date.now()}`, { cache: 'no-store' });
             if (!res.ok) return;
 
             const remote = await res.json();
 
-            // Simple string comparison for now, or semantic versioning check
+            // Log for debugging
+            console.log(`Version Check: Local=${APP_VERSION}, Remote=${remote.version}`);
+
             if (remote.version !== APP_VERSION) {
                 console.log(`Update available: ${APP_VERSION} -> ${remote.version}`);
                 setUpdateAvailable(true);
@@ -26,25 +28,24 @@ const UpdateNotifier = () => {
     };
 
     useEffect(() => {
-        // Initial check
         checkVersion();
-
-        // Periodic check
         const interval = setInterval(checkVersion, CHECK_INTERVAL);
         return () => clearInterval(interval);
     }, []);
 
-    const handleRefresh = () => {
+    const handleRefresh = async () => {
         if ('serviceWorker' in navigator) {
-            navigator.serviceWorker.getRegistrations().then((registrations) => {
-                registrations.forEach((registration) => {
-                    registration.unregister();
-                });
-                window.location.reload();
-            });
-        } else {
-            window.location.reload();
+            try {
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                for (const registration of registrations) {
+                    await registration.unregister();
+                }
+            } catch (e) { console.log("SW unregister error", e); }
         }
+
+        // Force reload from server, ignoring cache
+        window.location.href = window.location.href;
+        window.location.reload(true);
     };
 
     if (!updateAvailable) return null;
