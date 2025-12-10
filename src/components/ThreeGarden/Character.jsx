@@ -7,7 +7,6 @@ export default function Character(props) {
     const { nodes, materials, animations } = useGLTF('/models/little%20gir3.glb');
     const { actions } = useAnimations(animations, group);
 
-    // If there are animations, play the first one as idle by default
     React.useEffect(() => {
         if (actions) {
             const actionValues = Object.values(actions);
@@ -16,6 +15,17 @@ export default function Character(props) {
             }
         }
     }, [actions]);
+
+    // Debugging
+    if (!nodes) {
+        console.warn("Character GLTF failed to load nodes");
+        return null;
+    }
+    if (!nodes.Scene) {
+        console.warn("Character GLTF missing 'Scene' node. Available:", Object.keys(nodes));
+        // Fallback: Try to find a Scene-like object or return null
+        return null;
+    }
 
     return (
         <group ref={group} {...props} dispose={null}>
