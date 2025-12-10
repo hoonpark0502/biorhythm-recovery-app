@@ -203,12 +203,11 @@ const RiverScene = ({ children }) => {
                 {children}
 
                 {/* 7. POST PROCESSING (The Key Visual) */}
-                <EffectComposer disableNormalPass>
-                    {/* Bloom: luminanceThreshold controls what glows (only bright things) */}
+                {/* <EffectComposer disableNormalPass>
                     <Bloom luminanceThreshold={0.8} mipmapBlur intensity={1.8} radius={0.6} />
                     <Vignette eskil={false} offset={0.1} darkness={1.1} />
                     <Noise opacity={0.02} />
-                </EffectComposer>
+                </EffectComposer> */}
 
                 {/* Controls */}
                 <OrbitControls enablePan={false} minPolarAngle={0.4} maxPolarAngle={1.2} maxDistance={20} minDistance={5} />
