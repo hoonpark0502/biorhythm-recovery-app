@@ -69,7 +69,6 @@ const ThoughtObject = ({
     riverTarget,
     skyTarget,
     isPlanted = false,
-    isPlanted = false,
     onThrow,
     ...props
 }) => {
