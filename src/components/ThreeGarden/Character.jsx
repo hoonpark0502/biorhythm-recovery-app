@@ -3,8 +3,8 @@ import { useGLTF, useAnimations } from '@react-three/drei';
 
 export default function Character(props) {
     const group = useRef();
-    // Load the NEW GLB model "redhood.glb"
-    const { nodes, materials, animations } = useGLTF('/models/redhood.glb');
+    // Load the NEWEST GLB model "redhood2.glb" (Fixing box issue)
+    const { nodes, materials, animations } = useGLTF('/models/redhood2.glb');
     const { actions } = useAnimations(animations || [], group);
 
     React.useEffect(() => {
@@ -22,8 +22,8 @@ export default function Character(props) {
         return null;
     }
 
-    // Log available nodes to help debug "Box" issue
-    console.log("Character Nodes:", Object.keys(nodes));
+    // Log available nodes to help debug
+    console.log("Character Nodes (redhood2):", Object.keys(nodes));
 
     return (
         <group ref={group} {...props} dispose={null}>
@@ -33,4 +33,4 @@ export default function Character(props) {
     );
 }
 
-useGLTF.preload('/models/redhood.glb');
+useGLTF.preload('/models/redhood2.glb');
