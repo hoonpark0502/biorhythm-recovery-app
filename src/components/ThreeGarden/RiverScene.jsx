@@ -208,12 +208,12 @@ const RiverScene = ({ children, isNight = true }) => {
                 {/* 6. CHILD COMPONENTS (ThoughtObjects) */}
                 {children}
 
-                {/* 7. POST PROCESSING (Restored) */}
-                <EffectComposer disableNormalPass enabled={true}>
+                {/* 7. POST PROCESSING (Disabled: Causes Crash on User Device) */}
+                {/* <EffectComposer disableNormalPass enabled={true}>
                     <Bloom luminanceThreshold={isNight ? 0.8 : 1.2} mipmapBlur intensity={isNight ? 1.8 : 0.5} radius={0.6} />
                     <Vignette eskil={false} offset={0.1} darkness={isNight ? 1.1 : 0.4} />
                     <Noise opacity={0.02} />
-                </EffectComposer>
+                </EffectComposer> */}
 
                 {/* Controls */}
                 <OrbitControls enablePan={false} minPolarAngle={0.4} maxPolarAngle={1.2} maxDistance={20} minDistance={5} />
