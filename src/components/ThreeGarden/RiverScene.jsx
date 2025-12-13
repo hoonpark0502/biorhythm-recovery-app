@@ -161,33 +161,39 @@ function Bridge() {
     return <group>{planks}</group>;
 }
 
-const RiverScene = ({ children }) => {
+const RiverScene = ({ children, isNight = true }) => {
+    // Colors based on Day/Night
+    const bgColor = isNight ? "#02040a" : "#87ceeb";
+    const fogColor = isNight ? "#02040a" : "#e0f2fe";
+    const ambientInt = isNight ? 0.5 : 1.5;
+    const directInt = isNight ? 1.2 : 2.5;
+
     return (
-        <div style={{ width: "100%", height: "100vh", position: 'absolute', top: 0, left: 0, background: "#02040a" }}>
+        <div style={{ width: "100%", height: "100vh", position: 'absolute', top: 0, left: 0, background: bgColor, transition: 'background 1s ease' }}>
             <Canvas
                 camera={{ position: [0, 5, 12], fov: 40 }}
                 shadows
                 dpr={[1, 2]} // Quality
             >
                 {/* 1. MOOD ATMOSPHERE */}
-                <color attach="background" args={["#02040a"]} />
-                <fog attach="fog" args={["#02040a", 5, 30]} />
+                <color attach="background" args={[bgColor]} />
+                <fog attach="fog" args={[fogColor, 5, isNight ? 30 : 50]} />
 
                 {/* 2. LIGHTING (Cinematic) */}
-                <ambientLight intensity={0.5} color="#a5f3fc" />
+                <ambientLight intensity={ambientInt} color={isNight ? "#a5f3fc" : "#ffffff"} />
                 <directionalLight
                     castShadow
                     position={[5, 10, 5]}
-                    intensity={1.2}
-                    color="#e0f2fe"
+                    intensity={directInt}
+                    color={isNight ? "#e0f2fe" : "#fff7ed"}
                     shadow-mapSize={[1024, 1024]}
                 />
                 {/* Rim Light for Character */}
-                <spotLight position={[-5, 5, 0]} intensity={3} color="#818cf8" angle={0.5} penumbra={1} />
+                <spotLight position={[-5, 5, 0]} intensity={isNight ? 3 : 1} color={isNight ? "#818cf8" : "#fbbf24"} angle={0.5} penumbra={1} />
 
                 {/* 3. ENVIRONMENT */}
-                <Stars radius={80} depth={40} count={5000} factor={4} fade saturation={0} />
-                <Moon />
+                {isNight && <Stars radius={80} depth={40} count={5000} factor={4} fade saturation={0} />}
+                {isNight ? <Moon /> : <Sky sunPosition={[100, 20, 100]} />}
 
                 {/* 4. SCENE OBJECTS */}
                 <Environment />
@@ -202,12 +208,12 @@ const RiverScene = ({ children }) => {
                 {/* 6. CHILD COMPONENTS (ThoughtObjects) */}
                 {children}
 
-                {/* 7. POST PROCESSING (The Key Visual) */}
-                {/* <EffectComposer disableNormalPass>
-                    <Bloom luminanceThreshold={0.8} mipmapBlur intensity={1.8} radius={0.6} />
-                    <Vignette eskil={false} offset={0.1} darkness={1.1} />
+                {/* 7. POST PROCESSING (Restored) */}
+                <EffectComposer disableNormalPass enabled={true}>
+                    <Bloom luminanceThreshold={isNight ? 0.8 : 1.2} mipmapBlur intensity={isNight ? 1.8 : 0.5} radius={0.6} />
+                    <Vignette eskil={false} offset={0.1} darkness={isNight ? 1.1 : 0.4} />
                     <Noise opacity={0.02} />
-                </EffectComposer> */}
+                </EffectComposer>
 
                 {/* Controls */}
                 <OrbitControls enablePan={false} minPolarAngle={0.4} maxPolarAngle={1.2} maxDistance={20} minDistance={5} />

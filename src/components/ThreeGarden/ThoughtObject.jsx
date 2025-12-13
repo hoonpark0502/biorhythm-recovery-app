@@ -69,7 +69,9 @@ const ThoughtObject = ({
     riverTarget,
     skyTarget,
     isPlanted = false,
-    onThrow
+    isPlanted = false,
+    onThrow,
+    ...props
 }) => {
     const meshRef = useRef();
     const [phase, setPhase] = useState(isPlanted ? "star" : "idle");
@@ -82,6 +84,23 @@ const ThoughtObject = ({
             // Stars spin slowly
         }
     }, [isPlanted, skyTarget]);
+
+    // Auto-Start for Shop items
+    useEffect(() => {
+        if (onThrow && !isPlanted && phase === "idle") {
+            // If triggered by Shop, we want to auto-throw? 
+            // Or maybe onThrow is passed as a flag? 
+            // Let's use a prop 'autoThrow'
+        }
+    }, []);
+
+    // Explicit Start method exposed or handled by prop
+    useEffect(() => {
+        if (props.autoThrow && phase === "idle") {
+            setPhase("toRiver");
+            setT(0);
+        }
+    }, [props.autoThrow]);
 
     useFrame((_, delta) => {
         if (phase === "idle" || !meshRef.current) return;
@@ -196,12 +215,10 @@ const ThoughtObject = ({
                 </group>
             )}
 
-            {/* User specifically asked for TubeGeometry Swirl. 
-                Let's render it at the 'from' point (riverTarget) growing up to 'to' point (skyTarget).
-            */}
-            {/* {isFloating && (
-                 <MagicSwirlTrail progress={t} />
-            )} */}
+            {/* TubeGeometry Swirl (Restored) */}
+            {isFloating && (
+                <MagicSwirlTrail progress={t} />
+            )}
         </group>
     );
 };

@@ -5,76 +5,66 @@ import ThoughtObject from '../components/ThreeGarden/ThoughtObject';
 
 const Garden = ({ onBack }) => {
     const { profile, garden, throwObject, trackGardenVisit } = useStorage();
+    const [isNight, setIsNight] = useState(true);
+    const [animatingItems, setAnimatingItems] = useState([]); // Items currently being thrown
 
     // Track visit
     React.useEffect(() => {
-        console.log("Garden Render. Garden Data:", garden);
         trackGardenVisit();
     }, []);
 
-    const handleThrow = (type) => {
-        const costs = { cup: 5, book: 15, clock: 30 }; // Example costs? Or dynamic? 
-        // User code had hardcoded types: cup, book, clock.
-        // My previous code had: pebble(0.2), stone(0.5), branch(1.0).
-        // Let's map them for compatibility or define new ones.
-        // Let's assume standard costs for these new "Special" items.
-        // Cup (Simple) = 5, Book (Knowledge) = 10, Clock (Time) = 20? 
-        // Logic: Try to throw.
+    const handleBuy = (type) => {
+        // Shop Costs
+        let cost = 0.5;
+        let visualKind = 'cup';
 
-        // Actually, let's keep it simple. Just allow throwing if they have tokens.
-        // But I need to know the COST. 
-        // Let's stick to the old costs but visual mapping:
-        // Cup -> Pebble (Cheapest)
-        // Book -> Stone (Medium)
-        // Clock -> Branch (Expensive)
-
-        let cost = 1;
-        let internalKind = 'pebble';
-
-        if (type === 'cup') { cost = 1; internalKind = 'pebble'; }
-        if (type === 'book') { cost = 3; internalKind = 'stone'; }
-        if (type === 'clock') { cost = 5; internalKind = 'branch'; }
+        if (type === 'pebble') { cost = 0.5; visualKind = 'cup'; }
+        if (type === 'stone') { cost = 1.0; visualKind = 'book'; }
+        if (type === 'branch') { cost = 2.0; visualKind = 'clock'; }
 
         if (profile.tokens < cost) {
             alert(`Not enough tokens! Need ${cost} 🪙`);
-            return false;
+            return;
         }
 
         if (confirm(`Throw this thought? (${cost} tokens)`)) {
-            return throwObject(internalKind, cost);
+            const success = throwObject(type, cost);
+            if (success) {
+                // Trigger Animation
+                const newItem = {
+                    id: Date.now(),
+                    kind: visualKind,
+                    start: [0, 1.5, 3], // Start near camera/bridge
+                    riverTarget: [0, 0.2, 0],
+                    skyTarget: [0, 10, -10]
+                };
+                setAnimatingItems(prev => [...prev, newItem]);
+
+                // Remove from animation list after few seconds (when animation done)
+                setTimeout(() => {
+                    setAnimatingItems(prev => prev.filter(i => i.id !== newItem.id));
+                }, 8000);
+            }
         }
-        return false;
     };
 
     return (
         <div style={{ width: '100vw', height: '100vh', overflow: 'hidden' }}>
             {/* Main 3D Scene */}
-            <RiverScene>
-                {/* 1. Floating Shop Items (Interactive) */}
-                <ThoughtObject
-                    kind="cup"
-                    color="#9fd3ff"
-                    start={[0.5, 1.2, 0]}
-                    riverTarget={[0, 0.2, 0]}
-                    skyTarget={[2, 6, -5]}
-                    onThrow={handleThrow}
-                />
-                <ThoughtObject
-                    kind="book"
-                    color="#ffb36b"
-                    start={[0, 1.5, 0.6]}
-                    riverTarget={[0, 0.2, 0]}
-                    skyTarget={[-4, 7, -8]}
-                    onThrow={handleThrow}
-                />
-                <ThoughtObject
-                    kind="clock"
-                    color="#ffe27a"
-                    start={[-0.6, 1.3, -0.3]}
-                    riverTarget={[0, 0.2, 0]}
-                    skyTarget={[5, 8, -6]}
-                    onThrow={handleThrow}
-                />
+            <RiverScene isNight={isNight}>
+
+                {/* 1. Animating Items (Just Bought) */}
+                {animatingItems.map(item => (
+                    <ThoughtObject
+                        key={item.id}
+                        kind={item.kind}
+                        color="#ffffff"
+                        start={[0, 1, 2]} // Bridge position
+                        riverTarget={[0, 0.2, 0]}
+                        skyTarget={[(Math.random() * 10) - 5, 8, -5]}
+                        autoThrow={true} // Trigger animation immediately
+                    />
+                ))}
 
                 {/* 2. Planted Stars from Storage */}
                 {(garden || []).map((item, i) => {
@@ -84,13 +74,6 @@ const Garden = ({ onBack }) => {
                     let color = '#9fd3ff';
                     if (item.originType === 'stone') { kind = 'book'; color = '#ffb36b'; }
                     if (item.originType === 'branch') { kind = 'clock'; color = '#ffe27a'; }
-
-                    // Generate a deterministic sky position based on ID or index
-                    // In user code, skyTarget was separate.
-                    // Here we need to position them in the sky.
-                    // Let's use the random 'position' stored in 'item.position' if possible,
-                    // but 'item.position' from previous logic was likely low values.
-                    // We need Sky Values (Y > 5).
 
                     // Validate Position (Legacy data safeguard)
                     const rawPos = (item.position && Array.isArray(item.position)) ? item.position : [0, 0, 0];
@@ -113,31 +96,59 @@ const Garden = ({ onBack }) => {
                 })}
             </RiverScene>
 
-            {/* UI Overlay: Back Button & Token Count */}
-            <div style={{ position: 'absolute', top: 20, left: 20, zIndex: 10 }}>
+            {/* UI Overlay: Top Bar */}
+            <div style={{ position: 'absolute', top: 20, left: 20, right: 20, display: 'flex', justifyContent: 'space-between', zIndex: 10 }}>
                 <button onClick={onBack} style={{
                     background: 'rgba(255,255,255,0.2)', backdropFilter: 'blur(5px)',
                     border: 'none', borderRadius: '50%', width: '40px', height: '40px',
                     color: 'white', fontSize: '1.2rem', cursor: 'pointer'
                 }}>←</button>
+
+                <div style={{ display: 'flex', gap: '10px' }}>
+                    <button onClick={() => setIsNight(!isNight)} style={{
+                        background: 'rgba(0,0,0,0.4)', borderRadius: '20px', padding: '8px 16px',
+                        color: 'white', border: '1px solid rgba(255,255,255,0.3)', cursor: 'pointer'
+                    }}>
+                        {isNight ? '🌙 Night' : '☀️ Day'}
+                    </button>
+                    <div style={{
+                        background: 'rgba(0,0,0,0.4)', padding: '8px 16px', borderRadius: '20px',
+                        color: 'white', fontWeight: 'bold', backdropFilter: 'blur(5px)'
+                    }}>
+                        🪙 {profile.tokens}
+                    </div>
+                </div>
             </div>
 
+            {/* UI Overlay: Shop (Bottom) */}
             <div style={{
-                position: 'absolute', top: 20, right: 20, zIndex: 10,
-                background: 'rgba(0,0,0,0.4)', padding: '8px 16px', borderRadius: '20px',
-                color: 'white', fontWeight: 'bold', backdropFilter: 'blur(5px)'
+                position: 'absolute', bottom: 30, left: '50%', transform: 'translateX(-50%)',
+                background: 'rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)',
+                borderRadius: '20px', padding: '15px 25px', display: 'flex', gap: '20px',
+                border: '1px solid rgba(255,255,255,0.1)'
             }}>
-                🪙 {profile.tokens}
-            </div>
-
-            <div style={{
-                position: 'absolute', bottom: 30, width: '100%', textAlign: 'center',
-                color: 'white', opacity: 0.8, pointerEvents: 'none', textShadow: '0 2px 4px rgba(0,0,0,0.5)'
-            }}>
-                Click a floating object to throw your thought away
+                <ShopItem kind="pebble" cost={0.5} label="Pebble Needs" onClick={() => handleBuy('pebble')} />
+                <ShopItem kind="stone" cost={1.0} label="Stone Worries" onClick={() => handleBuy('stone')} />
+                <ShopItem kind="branch" cost={2.0} label="Branch Stress" onClick={() => handleBuy('branch')} />
             </div>
         </div>
     );
 };
+
+const ShopItem = ({ kind, cost, label, onClick }) => (
+    <div onClick={onClick} style={{ textAlign: 'center', cursor: 'pointer', color: 'white' }}>
+        <div style={{
+            width: '50px', height: '50px', background: 'rgba(255,255,255,0.1)',
+            borderRadius: '50%', marginBottom: '5px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+            fontSize: '1.5rem'
+        }}>
+            {kind === 'pebble' && '🧂'}
+            {kind === 'stone' && '🪨'}
+            {kind === 'branch' && '🪵'}
+        </div>
+        <div style={{ fontSize: '0.8rem', opacity: 0.8 }}>{label}</div>
+        <div style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#fbbf24' }}>{cost} 🪙</div>
+    </div>
+);
 
 export default Garden;
